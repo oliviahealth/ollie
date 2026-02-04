@@ -43,9 +43,6 @@ def search_direct_questions(conversation_id, search_query, allow_external):
     # Invoke RAG process
     response = retrieval_qa_chain.invoke(search_query)
 
-    print(response)
-
-
     answer = response.get('answer')
 
     return answer

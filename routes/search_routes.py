@@ -1,10 +1,10 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, Response
 import time
 import json
 
 from route_handlers.query_handlers import search_direct_questions, search_location_questions, determine_search_type
 
-from database import message_store, db
+from database import message_store, Location, db
 
 search_routes_bp = Blueprint('search_routes', __name__)
 
@@ -13,13 +13,42 @@ search_routes_bp = Blueprint('search_routes', __name__)
 def msg():
     return render_template('index.html')
 
+# Get all locations given a list of location ids
+@search_routes_bp.route("/locations", methods=['POST'])
+def get_locations():
+    ids = request.form.getlist("location_ids")
+
+    locations = []
+    for id in ids:
+        location = Location.query.filter_by(id=id).first()
+        locations.append({
+            'id': location.id,
+            'address': location.address + ", " + location.city + ", " + location.state + " " + str(int(location.zip_code)),
+            'addressLink': location.address_link,
+            'description': location.description,
+            'latitude': float(location.latitude),
+            'longitude': float(location.longitude),
+            'website': location.website,
+            'name': location.name,
+            'phone': location.phone,
+            'hoursOfOperation': [{"sunday": location.sunday_hours}, {"monday": location.monday_hours}, {"tuesday": location.tuesday_hours}, {"wednesday": location.wednesday_hours}, {"thursday": location.thursday_hours}, {"friday": location.friday_hours}, {"saturday": location.saturday_hours}],
+            'rating': float(location.rating) if (location.rating and location.rating.isalnum()) else None,
+            'isSaved': False
+        })
+
+    return Response(
+        json.dumps(locations),
+        mimetype='application/json'
+    )
+
 # API route for ICHILD frontend
 # Takes in a search_query and conversation_id to generate a response
 @search_routes_bp.route("/formattedresults", methods=['POST', 'GET'])
 def formatted_db_search():
     search_query = request.form.get('data')
     conversation_id = request.form.get('conversationId')
-    allow_external = True if request.form.get('allow_external') == "true" else False
+    allow_external = True if request.form.get(
+        'allow_external') == "true" else False
     date_created = int(time.time() * 1000)
 
     # Reconstruct the conversation history given the conversation_id
@@ -57,7 +86,7 @@ def formatted_db_search():
         Follow up question is needed for more information.
         Need to manually add the user query and ai response to the db
         '''
-        
+
         response = determine_search_type_response.choices[0].message.content
 
         new_user_message = message_store(
@@ -83,7 +112,7 @@ def formatted_db_search():
             'dateCreated': date_created,
             'conversationId': conversation_id
         }
-    
+
     # determine_search_type() will also create a summary of the conversation history
     # Extract the summarized query and pass it into the search handler
     arguments = json.loads(tool_calls[0].function.arguments)
@@ -92,10 +121,12 @@ def formatted_db_search():
     if (function_name == 'search_direct_questions'):
         response_type = 'direct'
 
-        if(allow_external):
-            response = search_direct_questions(conversation_id, summarized_query, True)
+        if (allow_external):
+            response = search_direct_questions(
+                conversation_id, summarized_query, True)
         else:
-            response = search_direct_questions(conversation_id, summarized_query, False)
+            response = search_direct_questions(
+                conversation_id, summarized_query, False)
 
         return {
             'userQuery': search_query,
@@ -105,7 +136,7 @@ def formatted_db_search():
             'dateCreated': date_created,
             'conversationId': conversation_id
         }
-    
+
     elif (function_name == 'search_location_questions'):
         response_type = 'location'
 
@@ -122,6 +153,6 @@ def formatted_db_search():
             'dateCreated': date_created,
             'conversationId': conversation_id
         }
-    
+
     else:
         return "error"
