@@ -1,0 +1,1 @@
+Error with the request: recognition connection failed: [Errno 32] Broken pipe

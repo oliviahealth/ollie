@@ -1,0 +1,43 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ollie
+      POSTGRES_USER: ollie
+      POSTGRES_PASSWORD: ollie
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ollie -d ollie"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  init:
+    build: ./
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./data/location_rows.csv:/seed/location_rows.csv:ro
+      - ./data/langchain_pg_collection_rows.csv:/seed/langchain_pg_collection_rows.csv:ro
+      - ./data/langchain_pg_embedding_rows.csv:/seed/langchain_pg_embedding_rows.csv:ro
+    command: ["python", "init_db.py"]
+    restart: "no"
+
+  server:
+    build: ./
+    env_file:
+      - .env
+    ports:
+      - "5050:5050"
+    depends_on:
+      init:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
