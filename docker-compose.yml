@@ -38,6 +38,15 @@ services:
     depends_on:
       init:
         condition: service_completed_successfully
+    develop:
+      watch:
+        # If your app code lives elsewhere, change ./ to the right folder (e.g., ./app)
+        - path: .
+          action: sync+restart
+          target: /app
+        # If requirements change, rebuild
+        - path: ./requirements.txt
+          action: rebuild
 
 volumes:
   pgdata:
