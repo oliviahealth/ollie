@@ -109,6 +109,7 @@ def formatted_db_search():
             'response': response,
             'response_type': 'direct',
             'locations': [],
+            'documents': [],
             'dateCreated': date_created,
             'conversationId': conversation_id
         }
@@ -121,18 +122,24 @@ def formatted_db_search():
     if (function_name == 'search_direct_questions'):
         response_type = 'direct'
 
+        response = None
+
         if (allow_external):
             response = search_direct_questions(
                 conversation_id, summarized_query, True)
         else:
             response = search_direct_questions(
                 conversation_id, summarized_query, False)
+            
+        answer = response.get('answer')
+        documents = response.get('documents')
 
         return {
             'userQuery': search_query,
-            'response': response,
+            'response': answer,
             'response_type': response_type,
             'locations': [],
+            'documents': documents,
             'dateCreated': date_created,
             'conversationId': conversation_id
         }
@@ -150,6 +157,7 @@ def formatted_db_search():
             'response': response,
             'response_type': response_type,
             'locations': locations,
+            'documents': [],
             'dateCreated': date_created,
             'conversationId': conversation_id
         }

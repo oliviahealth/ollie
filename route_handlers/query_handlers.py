@@ -33,6 +33,8 @@ def search_direct_questions(conversation_id, search_query, allow_external):
     Memory is updated with user query and answer
 
     Examples of direct questions: 'Newborn nutritonal advice', 'How do hormonal IUDs prevent pregnancy', 'What is mastitis treated with'
+
+    Collects and aggregates the identifiers of referenced documents. Each ID maps directly to its corresponding document record on OliviaHealth.com.
     '''
 
     # Build the retrieval QA chain with SQL memory
@@ -43,9 +45,15 @@ def search_direct_questions(conversation_id, search_query, allow_external):
     # Invoke RAG process
     response = retrieval_qa_chain.invoke(search_query)
 
+    documents = []
+
+    for doc in response["source_documents"]:
+        if doc.metadata['source'].get('id'):
+            documents.append(doc.metadata['source']['id'])
+
     answer = response.get('answer')
 
-    return answer
+    return {'answer': answer, 'documents': documents}
 
 def search_location_questions(conversation_id, search_query):
     '''
