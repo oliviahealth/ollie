@@ -9,6 +9,6 @@ def build_pg_vector_retriever(collection_name, embeddings_model, connection_uri)
         use_jsonb=True,
     )
 
-    pg_vector_retriever = pg_vector_store.as_retriever(search_type="mmr")
+    pg_vector_retriever = pg_vector_store.as_retriever(search_type="mmr", search_kwargs={"k": 10})
 
     return pg_vector_retriever
