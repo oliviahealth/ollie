@@ -43,6 +43,8 @@ def get_locations():
 
 # API route for ICHILD frontend
 # Takes in a search_query and conversation_id to generate a response
+
+
 @search_routes_bp.route("/formattedresults", methods=['POST', 'GET'])
 def formatted_db_search():
     search_query = request.form.get('data')
@@ -130,7 +132,7 @@ def formatted_db_search():
         else:
             response = search_direct_questions(
                 conversation_id, summarized_query, False)
-            
+
         answer = response.get('answer')
         documents = response.get('documents')
 
@@ -164,3 +166,35 @@ def formatted_db_search():
 
     else:
         return "error"
+
+
+@search_routes_bp.route("/conversations", methods=["DELETE"])
+def delete_conversation():
+    conversation_id = request.form.get("conversationId")
+
+    if not conversation_id:
+        return {"error": "conversationId is required"}, 400
+
+    try:
+        deleted_count = (
+            db.session.query(message_store)
+            .filter(message_store.session_id == conversation_id)
+            .delete(synchronize_session=False)
+        )
+
+        db.session.commit()
+
+        if deleted_count == 0:
+            return {"error": "Conversation not found"}, 404
+
+        return {
+            "status": "success",
+            "deleted": deleted_count
+        }, 200
+
+    except Exception as e:
+        db.session.rollback()
+        return {
+            "error": "Failed to delete messages",
+            "details": str(e)
+        }, 500
