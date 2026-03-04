@@ -185,7 +185,7 @@ def delete_conversation():
         db.session.commit()
 
         if deleted_count == 0:
-            return {"error": "Conversation not found"}, 404
+            raise ValueError("Conversation not found")
 
         return {
             "status": "success",
