@@ -1,5 +1,6 @@
 import os
 import glob
+import uuid
 from datetime import datetime
 
 from langchain.text_splitter import NLTKTextSplitter
@@ -7,6 +8,7 @@ from langchain.document_loaders import TextLoader
 from langchain_postgres import PGVector
 from langchain_postgres.vectorstores import PGVector
 from langchain.embeddings import OpenAIEmbeddings
+
 
 def load_docs(embeddings_model, documents_path, collection_name, database_uri):
     '''
@@ -19,10 +21,11 @@ def load_docs(embeddings_model, documents_path, collection_name, database_uri):
     Note: This function calls OpenAIEmbeddings() which costs money to run and can be fairly expensive so try to limit this operation.
           Ideally, the vector database should only need to be loaded initially and whenever we have new data
     '''
-    
+
     text_splitter = NLTKTextSplitter()
 
-    file_paths = glob.glob(os.path.join(documents_path, '**', '*.txt'), recursive=True)
+    file_paths = glob.glob(os.path.join(
+        documents_path, '**', '*.txt'), recursive=True)
 
     vector_store = PGVector(
         embeddings=embeddings_model,
@@ -34,14 +37,21 @@ def load_docs(embeddings_model, documents_path, collection_name, database_uri):
     # Process each file
     for file_path in file_paths:
         try:
-            # Load and split the document
             loader = TextLoader(file_path)
             docs = loader.load_and_split(text_splitter=text_splitter)
 
-            # Add documents to the vector store
+            for doc in docs:
+                doc.metadata = {
+                    "source": {
+                        "id": str(uuid.uuid4()),
+                        "path": f"./{file_path}"
+                    }
+                }
+
             vector_store.add_documents(docs)
 
             print(f"Processed {file_path}")
+
         except Exception as e:
             print(f"Error processing {file_path}: {e}")
 
