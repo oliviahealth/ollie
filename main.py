@@ -7,11 +7,16 @@ from flask_admin.contrib.sqla import ModelView
 from dotenv import load_dotenv
 from flask_jwt_extended import JWTManager
 import langchain
+from langchain.embeddings import OpenAIEmbeddings
 from datetime import timedelta
 
 from socketio_instance import socketio
 from database import db, bcrypt, revoked_tokens, load_models, get_models
+from admin_panel.LocationModelView import LocationModelView
 from routes.search_routes import search_routes_bp
+
+openai_api_key = os.getenv("OPENAI_API_KEY")
+embeddings_model = OpenAIEmbeddings(openai_api_key=openai_api_key)
 
 load_dotenv()
 
@@ -61,7 +66,7 @@ def setup_database(app):
 def setup_admin(app):
     admin = Admin(app, name='ollie')
     models = get_models()
-    admin.add_view(ModelView(models.location, db.session))
+    admin.add_view(LocationModelView(models.location, db.session, embeddings_model))
 
 app = create_app()
 setup_database(app)
