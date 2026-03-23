@@ -10,7 +10,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
     curl \
-    postgresql-client \
   && rm -rf /var/lib/apt/lists/*
 
 # ---- python deps ----
