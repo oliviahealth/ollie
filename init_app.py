@@ -4,11 +4,10 @@ from flask import Flask
 from dotenv import load_dotenv
 from sqlalchemy import text
 
-from database import db
+from init_database import init_db
 
 load_dotenv()
 
-# In your .env, this should look like:
 DATABASE_URL = os.getenv("POSTGRES_DSN")
 
 # Seed CSVs are mounted into the init container at /seed/*
@@ -21,13 +20,13 @@ def create_minimal_app():
     app = Flask(__name__)
     app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    db.init_app(app)
+    init_db.init_app(app)
     return app
 
 
 def ensure_pgvector_extension():
     # pgvector type won't exist until extension is enabled
-    with db.engine.begin() as conn:
+    with init_db.engine.begin() as conn:
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
 
 
@@ -45,7 +44,7 @@ def ensure_langchain_tables():
       Many LangChain schemas use UUID. If your CSV's id is NOT a UUID, change
       `id UUID PRIMARY KEY` to `id TEXT PRIMARY KEY`.
     """
-    with db.engine.begin() as conn:
+    with init_db.engine.begin() as conn:
         # Collection table
         conn.execute(text("""
         CREATE TABLE IF NOT EXISTS langchain_pg_collection (
@@ -132,7 +131,7 @@ if __name__ == "__main__":
         ensure_pgvector_extension()
 
         print("==> Creating app tables (SQLAlchemy models)...")
-        db.create_all()
+        init_db.create_all()
 
         print("==> Ensuring LangChain tables exist...")
         ensure_langchain_tables()
@@ -148,4 +147,4 @@ if __name__ == "__main__":
         print("==> Seeding langchain_pg_embedding...")
         seed_langchain_pg_embedding()
 
-    print("init_db complete")
+    print("init_app complete")

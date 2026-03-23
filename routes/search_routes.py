@@ -4,7 +4,8 @@ import json
 
 from route_handlers.query_handlers import search_direct_questions, search_location_questions, determine_search_type
 
-from database import message_store, Location, db
+# from init_database import message_store, Location, db
+from database import db, get_models
 
 search_routes_bp = Blueprint('search_routes', __name__)
 
@@ -16,11 +17,12 @@ def msg():
 # Get all locations given a list of location ids
 @search_routes_bp.route("/locations", methods=['POST'])
 def get_locations():
+    models = get_models()
     ids = request.form.getlist("location_ids")
 
     locations = []
     for id in ids:
-        location = Location.query.filter_by(id=id).first()
+        location = models.Location.query.filter_by(id=id).first()
         locations.append({
             'id': location.id,
             'address': location.address + ", " + location.city + ", " + location.state + " " + str(int(location.zip_code)),
@@ -47,6 +49,8 @@ def get_locations():
 
 @search_routes_bp.route("/formattedresults", methods=['POST', 'GET'])
 def formatted_db_search():
+    models = get_models()
+
     search_query = request.form.get('data')
     conversation_id = request.form.get('conversationId')
     allow_external = True if request.form.get(
@@ -54,7 +58,7 @@ def formatted_db_search():
     date_created = int(time.time() * 1000)
 
     # Reconstruct the conversation history given the conversation_id
-    conversation_history = message_store.query.filter_by(
+    conversation_history = models.message_store.query.filter_by(
         session_id=conversation_id).all()
 
     messages = [
@@ -91,12 +95,12 @@ def formatted_db_search():
 
         response = determine_search_type_response.choices[0].message.content
 
-        new_user_message = message_store(
+        new_user_message = models.message_store(
             session_id=conversation_id,
             message=f'{{"type": "human", "data": {{"content": "{search_query}"}}}}'
         )
 
-        new_response_message = message_store(
+        new_response_message = models.message_store(
             session_id=conversation_id,
             message=f'{{"type": "ai", "data": {{"content": "{response}"}}}}'
         )
@@ -170,6 +174,8 @@ def formatted_db_search():
 
 @search_routes_bp.route("/conversations", methods=["DELETE"])
 def delete_conversation():
+    models = get_models()
+    
     conversation_id = request.form.get("conversationId")
 
     if not conversation_id:
@@ -177,8 +183,8 @@ def delete_conversation():
 
     try:
         deleted_count = (
-            db.session.query(message_store)
-            .filter(message_store.session_id == conversation_id)
+            db.session.query(models.message_store)
+            .filter(models.message_store.session_id == conversation_id)
             .delete(synchronize_session=False)
         )
 

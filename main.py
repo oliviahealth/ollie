@@ -2,13 +2,15 @@ import os
 import ssl
 from flask import Flask
 from flask_cors import CORS
+from flask_admin import Admin
+from flask_admin.contrib.sqla import ModelView
 from dotenv import load_dotenv
 from flask_jwt_extended import JWTManager
 import langchain
 from datetime import timedelta
 
 from socketio_instance import socketio
-from database import db, bcrypt, revoked_tokens
+from database import db, bcrypt, revoked_tokens, load_models, get_models
 from routes.search_routes import search_routes_bp
 
 load_dotenv()
@@ -26,7 +28,8 @@ else:
 def create_app():
     app = Flask(__name__)
 
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('POSTGRESQL_CONNECTION_STRING')
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
+        'POSTGRESQL_CONNECTION_STRING')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
@@ -35,13 +38,10 @@ def create_app():
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')  # Change this
 
     langchain.verbose = False
-    
+
     CORS(app, supports_credentials=True)
     bcrypt.init_app(app)
     jwt = JWTManager(app)
-    
-    register_extensions(app)
-    register_blueprints(app)
 
     @jwt.token_in_blocklist_loader
     def check_if_token_in_blocklist(jwt_header, jwt_payload):
@@ -49,18 +49,24 @@ def create_app():
 
     return app
 
-def register_extensions(app):
-    db.init_app(app)  
-
 def register_blueprints(app):
     app.register_blueprint(search_routes_bp)
 
 def setup_database(app):
     with app.app_context():
+        db.init_app(app)
         db.create_all()
+        load_models()
+
+def setup_admin(app):
+    admin = Admin(app, name='ollie')
+    models = get_models()
+    admin.add_view(ModelView(models.location, db.session))
 
 app = create_app()
 setup_database(app)
+setup_admin(app)
+register_blueprints(app)
 socketio.init_app(app)
 
 if __name__ == "__main__":

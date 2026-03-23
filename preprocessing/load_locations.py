@@ -3,7 +3,7 @@ import pandas as pd
 from langchain.embeddings import OpenAIEmbeddings
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from database import Location
+from database import get_models
 
 def load_and_store_locations(embeddings_model, csv_path, database_uri):
     """
@@ -53,7 +53,7 @@ def load_and_store_locations(embeddings_model, csv_path, database_uri):
         try:
             embedding = embeddings_model.embed_query(text_to_embed)
 
-            new_location = Location(
+            new_location = get_models().Location(
                 id=id,
                 name=name,
                 address=address,

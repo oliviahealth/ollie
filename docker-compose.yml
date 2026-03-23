@@ -8,7 +8,7 @@ services:
       - ./data/location_rows.csv:/seed/location_rows.csv:ro
       - ./data/langchain_pg_collection_rows.csv:/seed/langchain_pg_collection_rows.csv:ro
       - ./data/langchain_pg_embedding_rows.csv:/seed/langchain_pg_embedding_rows.csv:ro
-    command: ["python", "init_db.py"]
+    command: ["python", "init_app.py"]
     restart: "no"
 
   server:
