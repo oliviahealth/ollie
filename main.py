@@ -3,22 +3,30 @@ import ssl
 from flask import Flask
 from flask_cors import CORS
 from flask_admin import Admin
-from flask_admin.contrib.sqla import ModelView
 from dotenv import load_dotenv
 from flask_jwt_extended import JWTManager
 import langchain
 from langchain.embeddings import OpenAIEmbeddings
 from datetime import timedelta
 
+from retrievers import retriever_store
+from retrievers.TableColumnRetriever import build_table_column_retriever
 from socketio_instance import socketio
 from database import db, bcrypt, revoked_tokens, load_models, get_models
 from admin_panel.LocationModelView import LocationModelView
 from routes.search_routes import search_routes_bp
 
 openai_api_key = os.getenv("OPENAI_API_KEY")
+connection_uri = os.getenv("POSTGRES_DSN")
 embeddings_model = OpenAIEmbeddings(openai_api_key=openai_api_key)
 
 load_dotenv()
+
+# Creating a TableColumnRetriever to index all of the columns for the location table when retrieving documents (location based questions)
+retriever_store.table_column_retriever = build_table_column_retriever(
+    connection_uri=connection_uri,
+    table_name="location",
+)
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -54,8 +62,10 @@ def create_app():
 
     return app
 
+
 def register_blueprints(app):
     app.register_blueprint(search_routes_bp)
+
 
 def setup_database(app):
     with app.app_context():
@@ -63,10 +73,13 @@ def setup_database(app):
         db.create_all()
         load_models()
 
+
 def setup_admin(app):
     admin = Admin(app, name='ollie')
     models = get_models()
-    admin.add_view(LocationModelView(models.location, db.session, embeddings_model))
+    admin.add_view(LocationModelView(
+        models.location, db.session, embeddings_model))
+
 
 app = create_app()
 setup_database(app)

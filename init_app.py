@@ -128,23 +128,23 @@ if __name__ == "__main__":
     app = create_minimal_app()
     with app.app_context():
         print("==> Enabling pgvector extension...")
-        ensure_pgvector_extension()
+        # ensure_pgvector_extension()
 
         print("==> Creating app tables (SQLAlchemy models)...")
-        init_db.create_all()
+        # init_db.create_all()
 
         print("==> Ensuring LangChain tables exist...")
-        ensure_langchain_tables()
+        # ensure_langchain_tables()
 
-        reset_tables()
+        # reset_tables()
 
         print("==> Seeding location table...")
-        seed_location()
+        # seed_location()
 
         print("==> Seeding langchain_pg_collection...")
-        seed_langchain_pg_collection()
+        # seed_langchain_pg_collection()
 
         print("==> Seeding langchain_pg_embedding...")
-        seed_langchain_pg_embedding()
+        # seed_langchain_pg_embedding()
 
     print("init_app complete")

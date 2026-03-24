@@ -1,6 +1,9 @@
 from flask_admin.contrib.sqla import ModelView
 import uuid
+import os
+from retrievers.retriever_store import rebuild_table_column_retriever_async
 
+connection_uri = os.getenv("POSTGRES_DSN")
 
 class LocationModelView(ModelView):
     def __init__(self, model, session, embeddings_model, **kwargs):
@@ -10,11 +13,9 @@ class LocationModelView(ModelView):
     def on_model_change(self, form, model, is_created):
         # runs before commit on both create and edit
         if is_created:
-            print("Creating record")
             model.id = str(uuid.uuid4())  # manually assign an id
 
             form_entries = []
-
             for key, value in form.data.items():
                 form_entries.append(f"{key}={value}")
 
@@ -22,18 +23,27 @@ class LocationModelView(ModelView):
 
             embedding = self.embeddings_model.embed_query(text_to_embed)
 
-            model.embedding = embedding # assign embedding
+            model.embedding = embedding  # assign embedding
         else:
-            print("Updating record")
+            form_entries = []
+            for key, value in form.data.items():
+                form_entries.append(f"{key}={value}")
+
+            text_to_embed = ', '.join(form_entries)
+
+            embedding = self.embeddings_model.embed_query(text_to_embed)
+
+            model.embedding = embedding  # assign embedding
 
         # example: modify fields before save
         # model.updated_by = current_user.email
 
     def after_model_change(self, form, model, is_created):
         # runs after commit on both create and edit
-        if is_created:
-           print("Created successfully")
+        rebuild_table_column_retriever_async()
 
+        if is_created:
+            print("Created successfully")
         else:
             print("Updated successfully")
 

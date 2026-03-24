@@ -10,11 +10,15 @@ from database import db, get_models
 search_routes_bp = Blueprint('search_routes', __name__)
 
 # Old ichild homepage
+
+
 @search_routes_bp.route("/", methods=['POST', 'GET'])
 def msg():
     return render_template('index.html')
 
 # Get all locations given a list of location ids
+
+
 @search_routes_bp.route("/locations", methods=['POST'])
 def get_locations():
     models = get_models()
@@ -22,7 +26,11 @@ def get_locations():
 
     locations = []
     for id in ids:
-        location = models.Location.query.filter_by(id=id).first()
+        location = (
+            db.session.query(models.Location)
+            .filter_by(id=id)
+            .first()
+        )
         locations.append({
             'id': location.id,
             'address': location.address + ", " + location.city + ", " + location.state + " " + str(int(location.zip_code)),
@@ -58,8 +66,11 @@ def formatted_db_search():
     date_created = int(time.time() * 1000)
 
     # Reconstruct the conversation history given the conversation_id
-    conversation_history = models.message_store.query.filter_by(
-        session_id=conversation_id).all()
+    conversation_history = (
+        db.session.query(models.message_store)
+        .filter_by(session_id=conversation_id)
+        .all()
+    )
 
     messages = [
         {"role": "system", "content": "You are a helpful assistant. First, summarize the conversation history. Then determine if the user's query is location-based, direct-answer, or requires more information. Provide the summary explicitly."},
@@ -175,7 +186,7 @@ def formatted_db_search():
 @search_routes_bp.route("/conversations", methods=["DELETE"])
 def delete_conversation():
     models = get_models()
-    
+
     conversation_id = request.form.get("conversationId")
 
     if not conversation_id:
