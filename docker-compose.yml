@@ -3,12 +3,15 @@ services:
     build: ./
     env_file:
       - .env
-    
     volumes:
       - ./data/location_rows.csv:/seed/location_rows.csv:ro
       - ./data/langchain_pg_collection_rows.csv:/seed/langchain_pg_collection_rows.csv:ro
       - ./data/langchain_pg_embedding_rows.csv:/seed/langchain_pg_embedding_rows.csv:ro
-    command: ["python", "init_app.py"]
+      - ./packages/flask-admin:/deps/flask-admin
+    command: >
+      sh -c "pip uninstall -y flask-admin || true &&
+             pip install --no-deps -e /deps/flask-admin &&
+             python init_app.py"
     restart: "no"
 
   server:
@@ -22,11 +25,11 @@ services:
         condition: service_completed_successfully
     develop:
       watch:
-        # If your app code lives elsewhere, change ./ to the right folder (e.g., ./app)
         - path: .
           action: sync+restart
           target: /app
-        # If requirements change, rebuild
+        - path: ./packages/flask-admin
+          action: rebuild
         - path: ./requirements.txt
           action: rebuild
 

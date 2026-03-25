@@ -1,11 +1,8 @@
-# server/Dockerfile
 FROM python:3.11-slim
 
 WORKDIR /app
 
 # ---- system deps ----
-# - gcc/build-essential often needed for some python wheels
-# - postgresql-client gives you "psql" for seeding
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
@@ -15,16 +12,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # ---- python deps ----
 COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# ---- patched flask-admin ----
+COPY packages/flask-admin /deps/flask-admin
+RUN pip uninstall -y flask-admin || true && \
+    pip install --no-deps -e /deps/flask-admin
 
 # ---- app code ----
 COPY . /app
 
-# Flask/Gunicorn settings (optional)
 ENV PYTHONUNBUFFERED=1
 ENV PORT=5050
 
 EXPOSE 5050
 
-# Default command for the server container (init container will override command)
 CMD ["gunicorn", "-k", "eventlet", "-w", "1", "-b", "0.0.0.0:5050", "main:app"]
