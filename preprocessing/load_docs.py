@@ -39,7 +39,7 @@ def extract_text_from_image_bytes(file_bytes: bytes) -> str:
         return transcribe_image(img).strip()
 
 
-def load_doc(embeddings_model, collection_name, database_uri, file_obj):
+def load_doc(embeddings_model, collection_name, database_uri, doc_id, file_obj):
     """
     Loads vectorized knowledge base embeddings into PGVector for a single uploaded file.
 
@@ -79,11 +79,10 @@ def load_doc(embeddings_model, collection_name, database_uri, file_obj):
         if not text.strip():
             raise ValueError(f"No readable text found in {filename}")
 
-        id = uuid.uuid4()
-
         metadata = {
             "source": {
-                "id": str(id) ,
+                "id": str(doc_id) ,
+                "path": filename
             }
         }
 
@@ -98,7 +97,7 @@ def load_doc(embeddings_model, collection_name, database_uri, file_obj):
         vector_store.add_documents(docs, ids=embedding_ids)
 
         print(f"Processed Document {filename}")
-        return { 'id': id, 'embedding_ids': embedding_ids }
+        return embedding_ids
 
     except Exception as e:
         print(f"Error processing Document {file_obj.filename}: {e}")
