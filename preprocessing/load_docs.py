@@ -39,9 +39,9 @@ def extract_text_from_image_bytes(file_bytes: bytes) -> str:
         return transcribe_image(img).strip()
 
 
-def load_doc(embeddings_model, collection_name, database_uri, doc_id, file_obj):
+def load_doc(embeddings_model, collection_name, database_uri, doc_id, filename, file_bytes):
     """
-    Loads vectorized knowledge base embeddings into PGVector for a single uploaded file.
+    Loads vectorized knowledge base embeddings into PGVector for a single uploaded file bytes.
 
     Supports:
     - .pdf via OCR
@@ -62,9 +62,6 @@ def load_doc(embeddings_model, collection_name, database_uri, doc_id, file_obj):
     )
 
     try:
-        file_obj.stream.seek(0)
-        file_bytes = file_obj.read()
-        filename = file_obj.filename
         lower_name = filename.lower()
 
         if lower_name.endswith(".pdf"):
@@ -74,7 +71,7 @@ def load_doc(embeddings_model, collection_name, database_uri, doc_id, file_obj):
         elif lower_name.endswith((".jpg", ".jpeg", ".png")):
             text = extract_text_from_image_bytes(file_bytes)
         else:
-            raise ValueError(f"Unsupported file type: {lower_name}")
+            raise ValueError(f"Unsupported file type: {filename}")
 
         if not text.strip():
             raise ValueError(f"No readable text found in {filename}")
@@ -100,7 +97,7 @@ def load_doc(embeddings_model, collection_name, database_uri, doc_id, file_obj):
         return embedding_ids
 
     except Exception as e:
-        print(f"Error processing Document {file_obj.filename}: {e}")
+        print(f"Error processing Document {filename}: {e}")
         return []
 
 def load_docs(embeddings_model, documents_path, collection_name, database_uri):

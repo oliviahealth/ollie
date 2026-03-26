@@ -1,26 +1,34 @@
 from flask_admin.contrib.sqla import ModelView
 from wtforms import FileField
 from sqlalchemy import text
+from io import BytesIO
 import uuid
 import os
 
 from preprocessing.load_docs import load_doc
 
 database_uri = os.getenv("POSTGRESQL_CONNECTION_STRING")
+s3_bucket_name = os.getenv("AWS_S3_BUCKET_NAME")
 LANGCHAIN_PG_COLLECTION_NAME = os.getenv("LANGCHAIN_PG_COLLECTION_NAME")
 
 class DocumentModelView(ModelView):
     form_extra_fields = {
         "upload": FileField("Upload File")
     }
-    form_excluded_columns = ("collection_id",)
+    form_excluded_columns = ("langchain_pg_embedding_collection","path")
 
-    def __init__(self, model, session, embeddings_model, **kwargs):
+    def __init__(self, model, session, embeddings_model, s3, **kwargs):
         super().__init__(model, session, **kwargs)
         self.embeddings_model = embeddings_model
+        self.s3 = s3
 
     def on_model_change(self, form, model, is_created):
         file = form.upload.data
+        file.stream.seek(0)
+        
+        filename = file.filename
+        file_bytes = file.read()
+        content_type = file.mimetype or "application/octet-stream"
 
         if not file or not getattr(file, "filename", None):
             raise ValueError("File missing")
@@ -35,12 +43,24 @@ class DocumentModelView(ModelView):
         if not id:
             raise ValueError("ID Error")
 
+        self.s3.upload_fileobj(
+            BytesIO(file_bytes),
+            "oliviahealth-resources",
+            f"local_resources/{id}-{filename}",
+            ExtraArgs={
+                "ContentType": content_type or "application/octet-stream"
+            }
+        )
+        s3_resource_url = f"https://{s3_bucket_name}.s3.amazonaws.com/local_resources/{id}-{filename}"
+        model.path = s3_resource_url
+
         embedding_ids = load_doc(
             self.embeddings_model,
             LANGCHAIN_PG_COLLECTION_NAME,
             database_uri,
             id,
-            file,
+            filename,
+            file_bytes,
         )
 
         self.session.add(model)
@@ -88,7 +108,7 @@ class DocumentModelView(ModelView):
                     self.session.flush()
                 except Exception:
                     pass
-            
+
             # reraise exception
             raise
 

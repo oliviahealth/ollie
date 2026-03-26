@@ -5,6 +5,7 @@ from flask_cors import CORS
 from flask_admin import Admin
 from dotenv import load_dotenv
 from flask_jwt_extended import JWTManager
+import boto3
 import langchain
 from langchain.embeddings import OpenAIEmbeddings
 from datetime import timedelta
@@ -28,6 +29,8 @@ retriever_store.table_column_retriever = build_table_column_retriever(
     connection_uri=connection_uri,
     table_name="location",
 )
+
+s3 = boto3.client("s3")
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -79,7 +82,7 @@ def setup_admin(app):
     admin = Admin(app, name='ollie')
     models = get_models()
     admin.add_view(LocationModelView(models.location, db.session, embeddings_model))
-    admin.add_view(DocumentModelView(models.local_resources, db.session, embeddings_model))
+    admin.add_view(DocumentModelView(models.local_resources, db.session, embeddings_model, s3))
 
 
 app = create_app()
