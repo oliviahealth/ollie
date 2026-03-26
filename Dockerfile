@@ -8,11 +8,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     curl \
     postgresql-client \
+    poppler-utils \
+    tesseract-ocr \
   && rm -rf /var/lib/apt/lists/*
 
 # ---- python deps ----
 COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt && \
+    python -c "import nltk; nltk.download('punkt_tab', download_dir='/usr/local/share/nltk_data'); nltk.download('punkt', download_dir='/usr/local/share/nltk_data')"
 
 # ---- patched flask-admin ----
 COPY packages/flask-admin /deps/flask-admin

@@ -14,6 +14,7 @@ from retrievers.TableColumnRetriever import build_table_column_retriever
 from socketio_instance import socketio
 from database import db, bcrypt, revoked_tokens, load_models, get_models
 from admin_panel.LocationModelView import LocationModelView
+from admin_panel.DocumentModelView import DocumentModelView
 from routes.search_routes import search_routes_bp
 
 openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -77,8 +78,8 @@ def setup_database(app):
 def setup_admin(app):
     admin = Admin(app, name='ollie')
     models = get_models()
-    admin.add_view(LocationModelView(
-        models.location, db.session, embeddings_model))
+    admin.add_view(LocationModelView(models.location, db.session, embeddings_model))
+    admin.add_view(DocumentModelView(models.local_resources, db.session, embeddings_model))
 
 
 app = create_app()

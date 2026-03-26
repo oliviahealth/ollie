@@ -44,3 +44,13 @@ class Location(init_db.Model):
     website = init_db.Column(init_db.String(), nullable=False)
     resource_type = init_db.Column(init_db.String(), nullable=False)
     embedding = init_db.Column(Vector(), nullable=True)
+
+class LocalResources(init_db.Model):
+    id = init_db.Column(init_db.String(), primary_key=True, default=lambda: str(uuid.uuid4()))
+    title = init_db.Column(init_db.String(), nullable=False)
+    subtitle = init_db.Column(init_db.String(), nullable=True)
+    video_url = init_db.Column(init_db.String(), nullable=True)
+    video_id = init_db.Column(init_db.String(), nullable=True)
+    transcript = init_db.Column(init_db.String(), nullable=True)
+    thumbnail_url = init_db.Column(init_db.String(), nullable=True)
+    url = init_db.Column(init_db.String(), nullable=False)
