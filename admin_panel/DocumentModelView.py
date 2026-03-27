@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+
 from flask_admin.contrib.sqla import ModelView
 from wtforms import FileField
 from sqlalchemy import text
@@ -23,7 +25,9 @@ class DocumentModelView(ModelView):
         self.embeddings_model = embeddings_model
         self.s3 = s3
 
-    def _upload_s3_resource(self, file_bytes, file_content_type, s3_key):
+    def _upload_s3_resource(self, file_id, file_name, file_bytes, file_content_type):
+        s3_key = f"local_resources/{file_id}-{file_name}"
+        
         self.s3.upload_fileobj(
             BytesIO(file_bytes),
             s3_bucket_name,
@@ -33,9 +37,7 @@ class DocumentModelView(ModelView):
             }
         )
 
-        s3_resource_url = f"https://{s3_bucket_name}.s3.amazonaws.com/{s3_key}"
-
-        return s3_resource_url
+        return s3_key
 
     def _delete_s3_resource(self, s3_key):
         self.s3.delete_object(
@@ -54,6 +56,7 @@ class DocumentModelView(ModelView):
         file_bytes = file.read()
         content_type = file.mimetype or "application/octet-stream"
         embedding_ids = None
+        s3_resource_url = None
 
         # get the existing id if this is an update or generate a new id
         id = str(model.id) if (not is_created and model.id) else None
@@ -65,26 +68,36 @@ class DocumentModelView(ModelView):
         if not id:
             raise ValueError("ID Error")
 
-        s3_key = f"local_resources/{id}-{filename}"
-
         try:
-            # upload file to s3 and link with model
-            s3_resource_url = self._upload_s3_resource(
-                file_bytes, content_type, s3_key)
-            model.path = s3_resource_url
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                s3_future = executor.submit(
+                    self._upload_s3_resource,
+                    id,
+                    filename,
+                    file_bytes,
+                    content_type,
+                )
 
-            # parse and generate embeddings
-            embedding_ids = load_doc(
-                self.embeddings_model,
-                LANGCHAIN_PG_COLLECTION_NAME,
-                database_uri,
-                id,
-                filename,
-                file_bytes,
-            )
+                embeddings_future = executor.submit(
+                    load_doc,
+                    self.embeddings_model,
+                    LANGCHAIN_PG_COLLECTION_NAME,
+                    database_uri,
+                    id,
+                    filename,
+                    file_bytes,
+                )
+
+                s3_resource_url = s3_future.result()
+                embedding_ids = embeddings_future.result()
+
+            model.path = s3_resource_url
 
             if not embedding_ids:
                 raise ValueError("Error generating embedding ids")
+
+            if not s3_resource_url:
+                raise ValueError("Error uploading to s3")
 
             self.session.add(model)
             self.session.flush()
@@ -127,7 +140,7 @@ class DocumentModelView(ModelView):
                     self.session.flush()
 
                     if model.path:
-                        self._delete_s3_resource(s3_key)
+                        self._delete_s3_resource(model.path)
                 except Exception:
                     pass
 
@@ -148,6 +161,6 @@ class DocumentModelView(ModelView):
     def after_model_delete(self, model):
         # runs after delete commit
         if model.path:
-            self._delete_s3_resource(model.path.split(".amazonaws.com/")[1])
+            self._delete_s3_resource(model.path)
             
         print("Deleted successfully")
