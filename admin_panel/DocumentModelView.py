@@ -11,27 +11,49 @@ database_uri = os.getenv("POSTGRESQL_CONNECTION_STRING")
 s3_bucket_name = os.getenv("AWS_S3_BUCKET_NAME")
 LANGCHAIN_PG_COLLECTION_NAME = os.getenv("LANGCHAIN_PG_COLLECTION_NAME")
 
+
 class DocumentModelView(ModelView):
     form_extra_fields = {
         "upload": FileField("Upload File")
     }
-    form_excluded_columns = ("langchain_pg_embedding_collection","path")
+    form_excluded_columns = ("langchain_pg_embedding_collection", "path")
 
     def __init__(self, model, session, embeddings_model, s3, **kwargs):
         super().__init__(model, session, **kwargs)
         self.embeddings_model = embeddings_model
         self.s3 = s3
 
+    def _upload_s3_resource(self, file_bytes, file_content_type, s3_key):
+        self.s3.upload_fileobj(
+            BytesIO(file_bytes),
+            s3_bucket_name,
+            s3_key,
+            ExtraArgs={
+                "ContentType": file_content_type
+            }
+        )
+
+        s3_resource_url = f"https://{s3_bucket_name}.s3.amazonaws.com/{s3_key}"
+
+        return s3_resource_url
+
+    def _delete_s3_resource(self, s3_key):
+        self.s3.delete_object(
+            Bucket=s3_bucket_name,
+            Key=s3_key
+        )
+
     def on_model_change(self, form, model, is_created):
         file = form.upload.data
         file.stream.seek(0)
-        
-        filename = file.filename
-        file_bytes = file.read()
-        content_type = file.mimetype or "application/octet-stream"
 
         if not file or not getattr(file, "filename", None):
             raise ValueError("File missing")
+
+        filename = file.filename
+        file_bytes = file.read()
+        content_type = file.mimetype or "application/octet-stream"
+        embedding_ids = None
 
         # get the existing id if this is an update or generate a new id
         id = str(model.id) if (not is_created and model.id) else None
@@ -43,33 +65,30 @@ class DocumentModelView(ModelView):
         if not id:
             raise ValueError("ID Error")
 
-        self.s3.upload_fileobj(
-            BytesIO(file_bytes),
-            "oliviahealth-resources",
-            f"local_resources/{id}-{filename}",
-            ExtraArgs={
-                "ContentType": content_type or "application/octet-stream"
-            }
-        )
-        s3_resource_url = f"https://{s3_bucket_name}.s3.amazonaws.com/local_resources/{id}-{filename}"
-        model.path = s3_resource_url
-
-        embedding_ids = load_doc(
-            self.embeddings_model,
-            LANGCHAIN_PG_COLLECTION_NAME,
-            database_uri,
-            id,
-            filename,
-            file_bytes,
-        )
-
-        self.session.add(model)
-        self.session.flush()
-
-        if not embedding_ids:
-            raise ValueError("Error generating embedding ids")
+        s3_key = f"local_resources/{id}-{filename}"
 
         try:
+            # upload file to s3 and link with model
+            s3_resource_url = self._upload_s3_resource(
+                file_bytes, content_type, s3_key)
+            model.path = s3_resource_url
+
+            # parse and generate embeddings
+            embedding_ids = load_doc(
+                self.embeddings_model,
+                LANGCHAIN_PG_COLLECTION_NAME,
+                database_uri,
+                id,
+                filename,
+                file_bytes,
+            )
+
+            if not embedding_ids:
+                raise ValueError("Error generating embedding ids")
+
+            self.session.add(model)
+            self.session.flush()
+
             # delete old records if update
             if not is_created:
                 self.session.execute(
@@ -106,6 +125,9 @@ class DocumentModelView(ModelView):
                         {"embedding_ids": [str(eid) for eid in embedding_ids]},
                     )
                     self.session.flush()
+
+                    if model.path:
+                        self._delete_s3_resource(s3_key)
                 except Exception:
                     pass
 
@@ -125,4 +147,7 @@ class DocumentModelView(ModelView):
 
     def after_model_delete(self, model):
         # runs after delete commit
+        if model.path:
+            self._delete_s3_resource(model.path.split(".amazonaws.com/")[1])
+            
         print("Deleted successfully")
