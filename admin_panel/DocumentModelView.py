@@ -27,7 +27,7 @@ class DocumentModelView(ModelView):
         self.s3 = s3
 
     def _upload_s3_resource(self, file_id, file_name, file_bytes, file_content_type):
-        s3_key = f"local_resources/{file_id}-{file_name}"
+        s3_key = f"{self.model.__table__.name}/{file_id}-{file_name}"
 
         self.s3.upload_fileobj(
             BytesIO(file_bytes),
