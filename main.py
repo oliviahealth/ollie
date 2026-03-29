@@ -11,6 +11,7 @@ from langchain.embeddings import OpenAIEmbeddings
 from datetime import timedelta
 
 from retrievers import retriever_store
+from retrievers.PGVectorRetriever import build_pg_vector_retriever
 from retrievers.TableColumnRetriever import build_table_column_retriever
 from socketio_instance import socketio
 from database import db, bcrypt, revoked_tokens, load_models, get_models
@@ -20,6 +21,8 @@ from routes.search_routes import search_routes_bp
 
 openai_api_key = os.getenv("OPENAI_API_KEY")
 connection_uri = os.getenv("POSTGRES_DSN")
+langchain_pg_collection_name = os.getenv("LANGCHAIN_PG_COLLECTION_NAME")
+
 embeddings_model = OpenAIEmbeddings(openai_api_key=openai_api_key)
 
 load_dotenv()
@@ -29,6 +32,9 @@ retriever_store.table_column_retriever = build_table_column_retriever(
     connection_uri=connection_uri,
     table_name="location",
 )
+
+retriever_store.pg_vector_retriever = build_pg_vector_retriever(
+    langchain_pg_collection_name, embeddings_model, connection_uri)
 
 s3 = boto3.client("s3")
 
@@ -40,7 +46,7 @@ except AttributeError:
     pass
 else:
     ssl._create_default_https_context = _create_unverified_https_context
-
+ 
 
 def create_app():
     app = Flask(__name__)
@@ -81,8 +87,10 @@ def setup_database(app):
 def setup_admin(app):
     admin = Admin(app, name='ollie')
     models = get_models()
-    admin.add_view(LocationModelView(models.location, db.session, embeddings_model))
-    admin.add_view(DocumentModelView(models.local_resources, db.session, embeddings_model, s3))
+    admin.add_view(LocationModelView(
+        models.location, db.session, embeddings_model))
+    admin.add_view(DocumentModelView(models.local_resources,
+                   db.session, embeddings_model, s3))
 
 
 app = create_app()

@@ -52,5 +52,7 @@ class LocationModelView(ModelView):
         print("Deleting record")
 
     def after_model_delete(self, model):
+        rebuild_table_column_retriever_async()
+        
         # runs after delete commit
         print("Deleted successfully")

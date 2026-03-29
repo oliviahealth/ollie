@@ -7,6 +7,7 @@ from io import BytesIO
 import uuid
 import os
 
+from retrievers.retriever_store import rebuild_pg_vector_retriever_async
 from preprocessing.load_docs import load_doc
 
 database_uri = os.getenv("POSTGRESQL_CONNECTION_STRING")
@@ -27,7 +28,7 @@ class DocumentModelView(ModelView):
 
     def _upload_s3_resource(self, file_id, file_name, file_bytes, file_content_type):
         s3_key = f"local_resources/{file_id}-{file_name}"
-        
+
         self.s3.upload_fileobj(
             BytesIO(file_bytes),
             s3_bucket_name,
@@ -107,7 +108,7 @@ class DocumentModelView(ModelView):
                 self.session.execute(
                     text("""
                         DELETE FROM langchain_pg_embedding
-                        WHERE local_resource_id = :resource_id
+                        WHERE resource_id = :resource_id
                     """),
                     {"resource_id": id},
                 )
@@ -117,7 +118,7 @@ class DocumentModelView(ModelView):
                 self.session.execute(
                     text("""
                         UPDATE langchain_pg_embedding
-                        SET local_resource_id = :resource_id
+                        SET resource_id = :resource_id
                         WHERE id = ANY(CAST(:embedding_ids AS uuid[]))
                     """),
                     {
@@ -149,6 +150,8 @@ class DocumentModelView(ModelView):
 
     def after_model_change(self, form, model, is_created):
         # runs after commit on both create and edit
+        rebuild_pg_vector_retriever_async()
+
         if is_created:
             print("Created successfully")
         else:
@@ -156,11 +159,21 @@ class DocumentModelView(ModelView):
 
     def on_model_delete(self, model):
         # runs before delete commit
+        self.session.execute(
+            text("""
+            DELETE FROM langchain_pg_embedding
+            WHERE resource_id = :resource_id
+        """),
+            {"resource_id": str(model.id)},
+        )
+
         print("Deleting record")
 
     def after_model_delete(self, model):
         # runs after delete commit
+        rebuild_pg_vector_retriever_async()
+
         if model.path:
             self._delete_s3_resource(model.path)
-            
+
         print("Deleted successfully")

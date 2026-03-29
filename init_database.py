@@ -1,7 +1,9 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.types import UserDefinedType
+from sqlalchemy.dialects.postgresql import UUID
 
 init_db = SQLAlchemy()
+
 
 class Vector(UserDefinedType):
     def get_col_spec(self):
@@ -12,13 +14,19 @@ class Vector(UserDefinedType):
 
     def column_expression(self, col):
         return col
-    
+
+
 class message_store(init_db.Model):
+    __tablename__ = "message_store"
+
     id = init_db.Column(init_db.Integer(), primary_key=True)
     session_id = init_db.Column(init_db.String(), nullable=False)
     message = init_db.Column(init_db.String(), nullable=False)
 
+
 class Location(init_db.Model):
+    __tablename__ = "location"
+
     id = init_db.Column(
         init_db.String(),
         primary_key=True,
@@ -48,7 +56,10 @@ class Location(init_db.Model):
     resource_type = init_db.Column(init_db.String(), nullable=False)
     embedding = init_db.Column(Vector(), nullable=True)
 
+
 class LocalResources(init_db.Model):
+    __tablename__ = "local_resources"
+
     id = init_db.Column(
         init_db.String(),
         primary_key=True,
@@ -61,5 +72,45 @@ class LocalResources(init_db.Model):
     transcript = init_db.Column(init_db.String(), nullable=True)
     thumbnail_url = init_db.Column(init_db.String(), nullable=True)
     url = init_db.Column(init_db.String(), nullable=False)
-
     path = init_db.Column(init_db.String(), nullable=True)
+
+    langchain_pg_embeddings = init_db.relationship(
+        "LangchainPGEmbedding",
+        back_populates="local_resource",
+        passive_deletes=True,
+    )
+
+
+class LangchainPGCollection(init_db.Model):
+    __tablename__ = "langchain_pg_collection"
+
+    uuid = init_db.Column(UUID(as_uuid=True), primary_key=True)
+    name = init_db.Column(init_db.Text())
+    cmetadata = init_db.Column(init_db.JSON())
+
+    embeddings = init_db.relationship(
+        "LangchainPGEmbedding",
+        back_populates="collection",
+        passive_deletes=True,
+    )
+
+
+class LangchainPGEmbedding(init_db.Model):
+    __tablename__ = "langchain_pg_embedding"
+
+    id = init_db.Column(UUID(as_uuid=True), primary_key=True)
+    collection_id = init_db.Column(
+        UUID(as_uuid=True),
+        init_db.ForeignKey("langchain_pg_collection.uuid", ondelete="CASCADE"),
+        nullable=True,
+    )
+    embedding = init_db.Column(Vector(), nullable=True)
+    document = init_db.Column(init_db.Text(), nullable=True)
+    cmetadata = init_db.Column(init_db.JSON(), nullable=True)
+
+    resource_id = init_db.Column(init_db.String(), nullable=True, index=True)
+
+    collection = init_db.relationship(
+        "LangchainPGCollection",
+        back_populates="embeddings",
+    )

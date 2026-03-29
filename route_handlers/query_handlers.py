@@ -4,20 +4,12 @@ import openai
 
 from chains.conversational_retrieval_chain_with_memory import build_conversational_retrieval_chain_with_memory
 from langchain.chat_models import ChatOpenAI
-from langchain.embeddings import OpenAIEmbeddings
 
 from socketio_instance import socketio
-from retrievers.PGVectorRetriever import build_pg_vector_retriever
-from retrievers.TableColumnRetriever import build_table_column_retriever
 import retrievers.retriever_store as retriever_store
 
 llm = ChatOpenAI()
-openai_embeddings = OpenAIEmbeddings()
 connection_uri = os.getenv("POSTGRES_DSN")
-
-# Create a retriever for the default langchain_pg_embedding table (direct questions)
-pg_vector_retriever = build_pg_vector_retriever('2024-11-15 12:59:57', openai_embeddings, connection_uri)
-
 
 def search_direct_questions(conversation_id, search_query, allow_external):
     '''
@@ -33,7 +25,7 @@ def search_direct_questions(conversation_id, search_query, allow_external):
     # Build the retrieval QA chain with SQL memory
     # Must pass in the session_id from the message_store table
     retrieval_qa_chain = build_conversational_retrieval_chain_with_memory(
-        llm, pg_vector_retriever, conversation_id, connection_uri, socketio, allow_external)
+        llm, retriever_store.pg_vector_retriever, conversation_id, connection_uri, socketio, allow_external)
 
     # Invoke RAG process
     response = retrieval_qa_chain.invoke(search_query)
