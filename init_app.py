@@ -18,6 +18,7 @@ LOCATION_CSV_PATH = "/seed/location_rows.csv"
 LOCAL_RESOURCES_CSV_PATH = "/seed/local_resource_rows.csv"
 VIDEO_SPOTLIGHTS_CSV_PATH = "/seed/video_spotlight_rows.csv"
 QUICK_TIPS_CSV_PATH = "/seed/quick_tip_rows.csv"
+INFOGRAPHICS_CSV_PATH = "/seed/infographic_rows.csv"
 
 
 def create_minimal_app():
@@ -65,6 +66,7 @@ def reset_tables():
             local_resources,
             video_spotlights,
             quick_tips,
+            infographics,
             "location",
             message_store
         RESTART IDENTITY CASCADE;
@@ -97,6 +99,13 @@ def seed_quick_tips():
         "quick_tips",
         QUICK_TIPS_CSV_PATH,
         "(id, title, description, video_url, video_id, infographic_url, infographic_description, thumbnail_url, transcript, url, path)",
+    )
+
+def seed_infographics():
+    psql_copy(
+        "infographics",
+        INFOGRAPHICS_CSV_PATH,
+        "(id, title, description, thumbnail_url, infographic_url, url, path)",
     )
 
 def seed_langchain_pg_collection():
@@ -147,5 +156,8 @@ if __name__ == "__main__":
 
         print("==> Seeding langchain_pg_embedding...")
         seed_langchain_pg_embedding()
+
+        print("==> Seeding infographics...")
+        seed_infographics()
 
     print("init_app complete")

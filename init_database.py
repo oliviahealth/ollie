@@ -125,6 +125,23 @@ class QuickTips(init_db.Model):
     transcript = init_db.Column(init_db.String(), nullable=True)
     url = init_db.Column(init_db.String(), nullable=False)
     path = init_db.Column(init_db.String(), nullable=False)
+
+class Infographics(init_db.Model):
+    __tablename__ = "infographics"
+
+    id = init_db.Column(
+        init_db.String(),
+        primary_key=True,
+        server_default=init_db.text("gen_random_uuid()::text")
+    )
+
+    title = init_db.Column(init_db.String(), nullable=False)
+    description = init_db.Column(init_db.String(), nullable=True)
+    thumbnail_url = init_db.Column(init_db.String(), nullable=True)
+    infographic_url = init_db.Column(init_db.String(), nullable=False)
+    url = init_db.Column(init_db.String(), nullable=False)
+    path = init_db.Column(init_db.String(), nullable=False)
+
     
 class LangchainPGCollection(init_db.Model):
     __tablename__ = "langchain_pg_collection"
