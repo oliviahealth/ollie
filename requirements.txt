@@ -50,3 +50,6 @@ pdf2image
 pytesseract
 pillow
 nltk
+
+SpeechRecognition
+moviepy

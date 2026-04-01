@@ -81,6 +81,31 @@ class LocalResources(init_db.Model):
     )
 
 
+class VideoSpotlights(init_db.Model):
+    __tablename__ = "video_spotlights"
+
+    id = init_db.Column(
+        init_db.String(),
+        primary_key=True,
+        server_default=init_db.text("gen_random_uuid()::text")
+    )
+
+    title = init_db.Column(init_db.String(), nullable=False)
+    subtitle = init_db.Column(init_db.String(), nullable=True)
+    video_url = init_db.Column(init_db.String(), nullable=False)
+    video_id = init_db.Column(init_db.String(), nullable=False)
+    video_description = init_db.Column(init_db.String(), nullable=True)
+    transcript = init_db.Column(init_db.String(), nullable=True)
+    thumbnail_url = init_db.Column(init_db.String(), nullable=True)
+    url = init_db.Column(init_db.String(), nullable=False)
+    path = init_db.Column(init_db.String(), nullable=True)
+
+    langchain_pg_embeddings = init_db.relationship(
+        "LangchainPGEmbedding",
+        back_populates="video_spotlights",
+        passive_deletes=True,
+    )
+
 class LangchainPGCollection(init_db.Model):
     __tablename__ = "langchain_pg_collection"
 

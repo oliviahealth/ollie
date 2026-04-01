@@ -16,6 +16,7 @@ COLLECTION_CSV_PATH = "/seed/langchain_pg_collection_rows.csv"
 EMBEDDING_CSV_PATH = "/seed/langchain_pg_embedding_rows.csv"
 LOCATION_CSV_PATH = "/seed/location_rows.csv"
 LOCAL_RESOURCES_CSV_PATH = "/seed/local_resource_rows.csv"
+VIDEO_SPOTLIGHTS_CSV_PATH = "/seed/video_spotlight_rows.csv"
 
 
 def create_minimal_app():
@@ -61,6 +62,7 @@ def reset_tables():
             langchain_pg_embedding,
             langchain_pg_collection,
             local_resources,
+            video_spotlights,
             "location",
             message_store
         RESTART IDENTITY CASCADE;
@@ -79,6 +81,13 @@ def seed_local_resources():
         "local_resources",
         LOCAL_RESOURCES_CSV_PATH,
         "(id, title, subtitle, video_url, video_id, transcript, thumbnail_url, url, path)",
+    )
+
+def seed_video_spotlights():
+    psql_copy(
+        "video_spotlights",
+        VIDEO_SPOTLIGHTS_CSV_PATH,
+        "(id, title, subtitle, video_url, video_id, video_description, transcript, thumbnail_url, url, path)",
     )
 
 
@@ -119,6 +128,9 @@ if __name__ == "__main__":
 
         print("==> Seeding local_resources table...")
         seed_local_resources()
+
+        print("==> Seeding video_spotlights table...")
+        seed_video_spotlights()
 
         print("==> Seeding langchain_pg_collection...")
         seed_langchain_pg_collection()

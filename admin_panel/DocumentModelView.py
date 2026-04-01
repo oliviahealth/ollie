@@ -140,8 +140,8 @@ class DocumentModelView(ModelView):
                     )
                     self.session.flush()
 
-                    if model.path:
-                        self._delete_s3_resource(model.path)
+                    s3_key = f"{self.model.__table__.name}/{id}-{filename}"
+                    self._delete_s3_resource(s3_key)
                 except Exception:
                     pass
 

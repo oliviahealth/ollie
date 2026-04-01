@@ -36,7 +36,12 @@ retriever_store.table_column_retriever = build_table_column_retriever(
 retriever_store.pg_vector_retriever = build_pg_vector_retriever(
     langchain_pg_collection_name, embeddings_model, connection_uri)
 
-s3 = boto3.client("s3")
+s3 = boto3.client(
+    "s3",
+    region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"),
+    aws_access_key_id=os.getenv("AWS_S3_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("AWS_S3_SECRET_ACCESS_KEY"),
+)
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -91,6 +96,8 @@ def setup_admin(app):
         models.location, db.session, embeddings_model))
     admin.add_view(DocumentModelView(models.local_resources,
                    db.session, embeddings_model, s3))
+    admin.add_view(DocumentModelView(models.video_spotlights,
+                    db.session, embeddings_model, s3))
 
 
 app = create_app()
