@@ -9,6 +9,7 @@ services:
       - ./data/langchain_pg_embedding_rows.csv:/seed/langchain_pg_embedding_rows.csv:ro
       - ./data/local_resource_rows.csv:/seed/local_resource_rows.csv:ro
       - ./data/video_spotlight_rows.csv:/seed/video_spotlight_rows.csv:ro
+      - ./data/quick_tip_rows.csv:/seed/quick_tip_rows.csv:ro
       - ./packages/flask-admin:/deps/flask-admin
     command: >
       sh -c "pip uninstall -y flask-admin || true &&

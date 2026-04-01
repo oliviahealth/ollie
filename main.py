@@ -98,6 +98,8 @@ def setup_admin(app):
                    db.session, embeddings_model, s3))
     admin.add_view(DocumentModelView(models.video_spotlights,
                     db.session, embeddings_model, s3))
+    admin.add_view(DocumentModelView(models.quick_tips,
+                    db.session, embeddings_model, s3))
 
 
 app = create_app()
