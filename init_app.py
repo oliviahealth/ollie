@@ -48,7 +48,7 @@ def psql_copy(table_name: str, csv_path: str, columns: str | None = None):
     sql = (
         f"\\copy {table_name}{cols} "
         f"FROM '{csv_path}' "
-        f"WITH (FORMAT csv, HEADER true, NULL 'NULL')"
+        f"WITH (FORMAT csv, HEADER true, NULL '')"
     )
 
     run_psql(sql)
@@ -84,28 +84,28 @@ def seed_local_resources():
     psql_copy(
         "local_resources",
         LOCAL_RESOURCES_CSV_PATH,
-        "(id, title, subtitle, video_url, video_id, transcript, thumbnail_url, url, path)",
+        "(id, title, subtitle, video_url, video_id, transcript, thumbnail_url, url, path, spotlight)",
     )
 
 def seed_video_spotlights():
     psql_copy(
         "video_spotlights",
         VIDEO_SPOTLIGHTS_CSV_PATH,
-        "(id, title, subtitle, video_url, video_id, video_description, transcript, thumbnail_url, url, path)",
+        "(id, title, subtitle, video_url, video_id, video_description, transcript, thumbnail_url, url, path, spotlight)",
     )
 
 def seed_quick_tips():
     psql_copy(
         "quick_tips",
         QUICK_TIPS_CSV_PATH,
-        "(id, title, description, video_url, video_id, infographic_url, infographic_description, thumbnail_url, transcript, url, path)",
+        "(id, title, description, video_url, video_id, infographic_url, infographic_description, thumbnail_url, transcript, url, path, spotlight)",
     )
 
 def seed_infographics():
     psql_copy(
         "infographics",
         INFOGRAPHICS_CSV_PATH,
-        "(id, title, description, thumbnail_url, infographic_url, url, path)",
+        "(id, title, description, thumbnail_url, infographic_url, url, path, spotlight)",
     )
 
 def seed_langchain_pg_collection():
@@ -129,35 +129,35 @@ if __name__ == "__main__":
 
     app = create_minimal_app()
 
-    with app.app_context():
-        print("==> Enabling pgvector extension...")
-        ensure_pgvector_extension()
+    # with app.app_context():
+    #     print("==> Enabling pgvector extension...")
+    #     ensure_pgvector_extension()
 
-        print("==> Creating app tables (SQLAlchemy models)...")
-        init_db.create_all()
+    #     print("==> Creating app tables (SQLAlchemy models)...")
+    #     init_db.create_all()
 
-        print("==> Resetting tables...")
-        reset_tables()
+    #     print("==> Resetting tables...")
+    #     reset_tables()
 
-        print("==> Seeding location table...")
-        seed_location()
+    #     print("==> Seeding location table...")
+    #     seed_location()
 
-        print("==> Seeding local_resources table...")
-        seed_local_resources()
+    #     print("==> Seeding local_resources table...")
+    #     seed_local_resources()
 
-        print("==> Seeding video_spotlights table...")
-        seed_video_spotlights()
+    #     print("==> Seeding video_spotlights table...")
+    #     seed_video_spotlights()
 
-        print("==> Seeding quick_tips table...")
-        seed_quick_tips()
+    #     print("==> Seeding quick_tips table...")
+    #     seed_quick_tips()
 
-        print("==> Seeding langchain_pg_collection...")
-        seed_langchain_pg_collection()
+    #     print("==> Seeding langchain_pg_collection...")
+    #     seed_langchain_pg_collection()
 
-        print("==> Seeding langchain_pg_embedding...")
-        seed_langchain_pg_embedding()
+    #     print("==> Seeding langchain_pg_embedding...")
+    #     seed_langchain_pg_embedding()
 
-        print("==> Seeding infographics...")
-        seed_infographics()
+    #     print("==> Seeding infographics...")
+    #     seed_infographics()
 
     print("init_app complete")

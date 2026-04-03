@@ -47,33 +47,46 @@ class DocumentModelView(ModelView):
         )
 
     def on_model_change(self, form, model, is_created):
-        file = form.upload.data
-        file.stream.seek(0)
+        file = getattr(form.upload, "data", None)
 
-        if not file or not getattr(file, "filename", None):
-            raise ValueError("File missing")
-
-        filename = file.filename
-        file_bytes = file.read()
-        content_type = file.mimetype or "application/octet-stream"
         embedding_ids = None
         s3_resource_url = None
 
-        # get the existing id if this is an update or generate a new id
-        id = str(model.id) if (not is_created and model.id) else None
+        # keep existing id on update, create new id on create
+        resource_id = str(model.id) if (not is_created and model.id) else None
 
         if is_created:
-            id = uuid.uuid4()
-            model.id = id
+            resource_id = str(uuid.uuid4())
+            model.id = resource_id
 
-        if not id:
+        if not resource_id:
             raise ValueError("ID Error")
+
+        # CREATE: file is required
+        if is_created:
+            if not file or not getattr(file, "filename", None):
+                raise ValueError("File missing")
+
+        # UPDATE with no new file: keep existing resource as-is
+        if not is_created and (not file or not getattr(file, "filename", None)):
+            self.session.add(model)
+            self.session.flush()
+            return
+
+        file.stream.seek(0)
+        filename = file.filename
+        file_bytes = file.read()
+        content_type = file.mimetype or "application/octet-stream"
+
+        old_path = None
+        if not is_created:
+            old_path = model.path
 
         try:
             with ThreadPoolExecutor(max_workers=2) as executor:
                 s3_future = executor.submit(
                     self._upload_s3_resource,
-                    id,
+                    resource_id,
                     filename,
                     file_bytes,
                     content_type,
@@ -84,7 +97,7 @@ class DocumentModelView(ModelView):
                     self.embeddings_model,
                     LANGCHAIN_PG_COLLECTION_NAME,
                     database_uri,
-                    id,
+                    resource_id,
                     filename,
                     file_bytes,
                 )
@@ -92,43 +105,53 @@ class DocumentModelView(ModelView):
                 s3_resource_url = s3_future.result()
                 embedding_ids = embeddings_future.result()
 
-            model.path = s3_resource_url
+            if not s3_resource_url:
+                raise ValueError("Error uploading to s3")
 
             if not embedding_ids:
                 raise ValueError("Error generating embedding ids")
 
-            if not s3_resource_url:
-                raise ValueError("Error uploading to s3")
-
-            self.session.add(model)
-            self.session.flush()
-
-            # delete old records if update
+            # on update, delete old embedding rows for this resource before relinking new ones
             if not is_created:
                 self.session.execute(
                     text("""
                         DELETE FROM langchain_pg_embedding
                         WHERE resource_id = :resource_id
                     """),
-                    {"resource_id": id},
+                    {"resource_id": resource_id},
                 )
 
-            # Link langchain_pg_embedding with location_resources
-            if embedding_ids:
-                self.session.execute(
-                    text("""
-                        UPDATE langchain_pg_embedding
-                        SET resource_id = :resource_id
-                        WHERE id = ANY(CAST(:embedding_ids AS uuid[]))
-                    """),
-                    {
-                        "resource_id": str(model.id),
-                        "embedding_ids": [str(eid) for eid in embedding_ids],
-                    },
-                )
+            model.path = s3_resource_url
+
+            self.session.add(model)
+            self.session.flush()
+
+            # link new embedding rows to this resource
+            self.session.execute(
+                text("""
+                    UPDATE langchain_pg_embedding
+                    SET resource_id = :resource_id
+                    WHERE id = ANY(CAST(:embedding_ids AS uuid[]))
+                """),
+                {
+                    "resource_id": resource_id,
+                    "embedding_ids": [str(eid) for eid in embedding_ids],
+                },
+            )
+
+            # optional: delete old S3 object after successful replacement
+            if not is_created and old_path and old_path != s3_resource_url:
+                try:
+                    # if old_path is a full URL, extract key; otherwise assume it's already a key/path
+                    old_key = old_path
+                    if ".amazonaws.com/" in old_path:
+                        old_key = old_path.split(".amazonaws.com/", 1)[1]
+                    self._delete_s3_resource(old_key)
+                except Exception:
+                    pass
 
         except Exception:
-            # cleanup embeddings created by load_doc on failure
+            # cleanup newly created embeddings and uploaded file on failure
             if embedding_ids:
                 try:
                     self.session.execute(
@@ -139,13 +162,18 @@ class DocumentModelView(ModelView):
                         {"embedding_ids": [str(eid) for eid in embedding_ids]},
                     )
                     self.session.flush()
+                except Exception:
+                    pass
 
-                    s3_key = f"{self.model.__table__.name}/{id}-{filename}"
+            if s3_resource_url:
+                try:
+                    s3_key = s3_resource_url
+                    if ".amazonaws.com/" in s3_resource_url:
+                        s3_key = s3_resource_url.split(".amazonaws.com/", 1)[1]
                     self._delete_s3_resource(s3_key)
                 except Exception:
                     pass
 
-            # reraise exception
             raise
 
     def after_model_change(self, form, model, is_created):

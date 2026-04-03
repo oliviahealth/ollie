@@ -73,6 +73,7 @@ class LocalResources(init_db.Model):
     thumbnail_url = init_db.Column(init_db.String(), nullable=True)
     url = init_db.Column(init_db.String(), nullable=False)
     path = init_db.Column(init_db.String(), nullable=False)
+    spotlight = init_db.Column(init_db.Boolean(), nullable=True)
 
     langchain_pg_embeddings = init_db.relationship(
         "LangchainPGEmbedding",
@@ -99,6 +100,7 @@ class VideoSpotlights(init_db.Model):
     thumbnail_url = init_db.Column(init_db.String(), nullable=True)
     url = init_db.Column(init_db.String(), nullable=False)
     path = init_db.Column(init_db.String(), nullable=False)
+    spotlight = init_db.Column(init_db.Boolean(), nullable=True)
 
     langchain_pg_embeddings = init_db.relationship(
         "LangchainPGEmbedding",
@@ -125,6 +127,7 @@ class QuickTips(init_db.Model):
     transcript = init_db.Column(init_db.String(), nullable=True)
     url = init_db.Column(init_db.String(), nullable=False)
     path = init_db.Column(init_db.String(), nullable=False)
+    spotlight = init_db.Column(init_db.Boolean(), nullable=True)
 
 class Infographics(init_db.Model):
     __tablename__ = "infographics"
@@ -141,7 +144,7 @@ class Infographics(init_db.Model):
     infographic_url = init_db.Column(init_db.String(), nullable=False)
     url = init_db.Column(init_db.String(), nullable=False)
     path = init_db.Column(init_db.String(), nullable=False)
-
+    spotlight = init_db.Column(init_db.Boolean(), nullable=True)
     
 class LangchainPGCollection(init_db.Model):
     __tablename__ = "langchain_pg_collection"

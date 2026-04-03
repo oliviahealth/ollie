@@ -6,12 +6,12 @@ db = SQLAlchemy()
 bcrypt = Bcrypt()
 revoked_tokens = set()
 
-Base = automap_base()
 models = None
 
 # Dynamically load schemas from database
 def load_models():
     global models
+    Base = automap_base()
     Base.prepare(autoload_with=db.engine)
     models = Base.classes
     return models
