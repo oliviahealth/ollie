@@ -39,7 +39,7 @@ def get_resources():
         ]
 
     return Response(
-        json.dumps(results),
+        json.dumps(results, default=str),
         mimetype="application/json"
     )
 
