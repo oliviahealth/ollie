@@ -24,7 +24,7 @@ def get_resources():
         table_name = model.__table__.name
 
         # don't include the 'internal' tables
-        if table_name in {"langchain_pg_collection", "langchain_pg_embedding", "message_store"}:
+        if table_name in {"langchain_pg_collection", "langchain_pg_embedding", "message_store", "admin_user"}:
             continue
 
         resources = db.session.query(model).all()
