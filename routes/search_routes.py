@@ -10,8 +10,6 @@ from database import db, load_models
 search_routes_bp = Blueprint('search_routes', __name__)
 
 # Old ichild homepage
-
-
 @search_routes_bp.route("/", methods=['POST', 'GET'])
 def msg():
     return render_template('index.html')
@@ -46,8 +44,6 @@ def get_resources():
     )
 
 # Get all locations given a list of location ids
-
-
 @search_routes_bp.route("/locations", methods=['POST'])
 def get_locations():
     models = load_models()
@@ -82,8 +78,6 @@ def get_locations():
 
 # API route for ICHILD frontend
 # Takes in a search_query and conversation_id to generate a response
-
-
 @search_routes_bp.route("/formattedresults", methods=['POST', 'GET'])
 def formatted_db_search():
     models = load_models()

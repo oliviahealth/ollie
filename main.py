@@ -1,10 +1,10 @@
 import os
 import ssl
-from flask import Flask
+from flask import Flask, Response, make_response, redirect, request, g
 from flask_cors import CORS
 from flask_admin import Admin
 from dotenv import load_dotenv
-from flask_jwt_extended import JWTManager
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, set_access_cookies, verify_jwt_in_request
 import boto3
 import langchain
 from langchain.embeddings import OpenAIEmbeddings
@@ -14,7 +14,8 @@ from retrievers import retriever_store
 from retrievers.PGVectorRetriever import build_pg_vector_retriever
 from retrievers.TableColumnRetriever import build_table_column_retriever
 from socketio_instance import socketio
-from database import db, bcrypt, revoked_tokens, load_models, get_models
+from database import db, bcrypt, load_models, get_models
+from init_database import AdminUser
 from admin_panel.LocationModelView import LocationModelView
 from admin_panel.DocumentModelView import DocumentModelView
 from routes.search_routes import search_routes_bp
@@ -56,14 +57,14 @@ else:
 def create_app():
     app = Flask(__name__)
 
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-        'POSTGRESQL_CONNECTION_STRING')
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('POSTGRESQL_CONNECTION_STRING')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
     app.config['JWT_BLACKLIST_ENABLED'] = True
     app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access']
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')  # Change this
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+    app.config["JWT_SECRET_KEY"] = os.getenv('SECRET_KEY')
 
     langchain.verbose = False
 
@@ -71,9 +72,51 @@ def create_app():
     bcrypt.init_app(app)
     jwt = JWTManager(app)
 
-    @jwt.token_in_blocklist_loader
-    def check_if_token_in_blocklist(jwt_header, jwt_payload):
-        return jwt_payload["jti"] in revoked_tokens
+    def check_basic_auth(username, password):
+        admin = (
+            db.session.query(AdminUser)
+            .filter(AdminUser.username == username, AdminUser.is_active == True)
+            .first()
+        )
+
+        if not admin:
+            return False
+
+        return admin.check_password(password)
+
+
+    def basic_auth_prompt():
+        return Response(
+            "Login required",
+            401,
+            {"WWW-Authenticate": 'Basic realm="Admin Login"'}
+        )
+
+    @app.before_request
+    def protect_admin():
+        if not request.path.startswith("/admin"):
+            return
+
+        try:
+            verify_jwt_in_request()
+            g.admin_identity = None
+            return
+        except Exception:
+            pass
+
+        auth = request.authorization
+        if not auth or not check_basic_auth(auth.username, auth.password):
+            return basic_auth_prompt()
+
+        # Basic auth succeeded for this request
+        g.admin_identity = auth.username
+
+    @app.after_request
+    def set_admin_jwt_cookie(response):
+        if getattr(g, "admin_identity", None):
+            access_token = create_access_token(identity=g.admin_identity)
+            set_access_cookies(response, access_token)
+        return response
 
     return app
 
