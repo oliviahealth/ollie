@@ -4,7 +4,8 @@ import json
 
 from route_handlers.query_handlers import search_direct_questions, search_location_questions, determine_search_type
 
-from database import message_store, Location, db
+# from init_database import message_store, Location, db
+from database import db, load_models
 
 search_routes_bp = Blueprint('search_routes', __name__)
 
@@ -13,14 +14,48 @@ search_routes_bp = Blueprint('search_routes', __name__)
 def msg():
     return render_template('index.html')
 
+
+@search_routes_bp.route("/resources", methods=["GET"])
+def get_resources():
+    models = load_models()
+    results = {}
+
+    for model in models:
+        table_name = model.__table__.name
+
+        # don't include the 'internal' tables
+        if table_name in {"langchain_pg_collection", "langchain_pg_embedding", "message_store"}:
+            continue
+
+        resources = db.session.query(model).all()
+
+        results[table_name] = [
+            {
+                column.name: getattr(resource, column.name)
+                for column in model.__table__.columns
+                if column.name != "embedding"  # don't include the embedding column if it exists
+            }
+            for resource in resources
+        ]
+
+    return Response(
+        json.dumps(results, default=str),
+        mimetype="application/json"
+    )
+
 # Get all locations given a list of location ids
 @search_routes_bp.route("/locations", methods=['POST'])
 def get_locations():
+    models = load_models()
     ids = request.form.getlist("location_ids")
 
     locations = []
     for id in ids:
-        location = Location.query.filter_by(id=id).first()
+        location = (
+            db.session.query(models.Location)
+            .filter_by(id=id)
+            .first()
+        )
         locations.append({
             'id': location.id,
             'address': location.address + ", " + location.city + ", " + location.state + " " + str(int(location.zip_code)),
@@ -43,10 +78,10 @@ def get_locations():
 
 # API route for ICHILD frontend
 # Takes in a search_query and conversation_id to generate a response
-
-
 @search_routes_bp.route("/formattedresults", methods=['POST', 'GET'])
 def formatted_db_search():
+    models = load_models()
+
     search_query = request.form.get('data')
     conversation_id = request.form.get('conversationId')
     allow_external = True if request.form.get(
@@ -54,8 +89,11 @@ def formatted_db_search():
     date_created = int(time.time() * 1000)
 
     # Reconstruct the conversation history given the conversation_id
-    conversation_history = message_store.query.filter_by(
-        session_id=conversation_id).all()
+    conversation_history = (
+        db.session.query(models.message_store)
+        .filter_by(session_id=conversation_id)
+        .all()
+    )
 
     messages = [
         {"role": "system", "content": "You are a helpful assistant. First, summarize the conversation history. Then determine if the user's query is location-based, direct-answer, or requires more information. Provide the summary explicitly."},
@@ -91,12 +129,12 @@ def formatted_db_search():
 
         response = determine_search_type_response.choices[0].message.content
 
-        new_user_message = message_store(
+        new_user_message = models.message_store(
             session_id=conversation_id,
             message=f'{{"type": "human", "data": {{"content": "{search_query}"}}}}'
         )
 
-        new_response_message = message_store(
+        new_response_message = models.message_store(
             session_id=conversation_id,
             message=f'{{"type": "ai", "data": {{"content": "{response}"}}}}'
         )
@@ -170,6 +208,8 @@ def formatted_db_search():
 
 @search_routes_bp.route("/conversations", methods=["DELETE"])
 def delete_conversation():
+    models = load_models()
+
     conversation_id = request.form.get("conversationId")
 
     if not conversation_id:
@@ -177,15 +217,12 @@ def delete_conversation():
 
     try:
         deleted_count = (
-            db.session.query(message_store)
-            .filter(message_store.session_id == conversation_id)
+    db.session.query(models.message_store)
+            .filter(models.message_store.session_id == conversation_id)
             .delete(synchronize_session=False)
         )
 
         db.session.commit()
-
-        if deleted_count == 0:
-            raise ValueError("Conversation not found")
 
         return {
             "status": "success",

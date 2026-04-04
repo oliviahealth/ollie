@@ -8,6 +8,7 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from langchain.embeddings import OpenAIEmbeddings
 
+
 class TableColumnRetriever(BaseRetriever):
     """A retriever that retrieves top-k documents for a given table and its columns based on OpenAI embedding similarity."""
 
@@ -22,79 +23,119 @@ class TableColumnRetriever(BaseRetriever):
     ) -> List[Document]:
         """Retrieve documents based on cosine similarity between embeddings."""
 
-        # Step 1: Convert the query into an embedding using OpenAI
         query_embedding = self.openai_embeddings.embed_query(query)
-
-        # Step 2: Compute cosine similarities between query and document embeddings
         similarities = cosine_similarity([query_embedding], self.embeddings)[0]
-
-        # Step 3: Get the top-k most similar documents
         top_k_indices = np.argsort(similarities)[-self.k:][::-1]
-
-        matching_documents = [self.documents[i] for i in top_k_indices]
 
         documents = []
 
-        # loop through the doc_list and for each doc add a json representation in the locations array
-        for doc in matching_documents:
-            doc_id, name, address, city, state, country, zip_code, latitude, longitude, description, phone, sunday_hours, monday_hours, tuesday_hours, wednesday_hours, thursday_hours, friday_hours, saturday_hours, rating, address_link, website, resource_type, county = doc.page_content.split(
-                "##")
+        for i in top_k_indices:
+            doc = self.documents[i]
+            row = json.loads(doc.page_content)
+
+            doc_id = row.get("id")
+            name = row.get("name")
+            address = row.get("address")
+            city = row.get("city")
+            state = row.get("state")
+            zip_code = row.get("zip_code")
+            latitude = row.get("latitude")
+            longitude = row.get("longitude")
+            description = row.get("description")
+            phone = row.get("phone")
+            sunday_hours = row.get("sunday_hours")
+            monday_hours = row.get("monday_hours")
+            tuesday_hours = row.get("tuesday_hours")
+            wednesday_hours = row.get("wednesday_hours")
+            thursday_hours = row.get("thursday_hours")
+            friday_hours = row.get("friday_hours")
+            saturday_hours = row.get("saturday_hours")
+            rating = row.get("rating")
+            address_link = row.get("address_link")
+            website = row.get("website")
 
             unified_address = f"{address}, {city}, {state} {zip_code}"
             confidence = 1
-            hours_of_operation = [{"sunday": sunday_hours}, {"monday": monday_hours}, {"tuesday": tuesday_hours}, {
-                "wednesday": wednesday_hours}, {"thursday": thursday_hours}, {"friday": friday_hours}, {"saturday": saturday_hours}]
+            hours_of_operation = [
+                {"sunday": sunday_hours},
+                {"monday": monday_hours},
+                {"tuesday": tuesday_hours},
+                {"wednesday": wednesday_hours},
+                {"thursday": thursday_hours},
+                {"friday": friday_hours},
+                {"saturday": saturday_hours},
+            ]
             is_saved = False
-            # latitude, longitude, rating may be represented numerically
-            
+
             try:
-                latitude = float(latitude.strip())
-                longitude = float(longitude.strip())
-                rating = float(rating.strip())
+                latitude = float(latitude) if latitude is not None else None
+                longitude = float(longitude) if longitude is not None else None
+                rating = float(rating) if rating is not None else None
             except:
                 pass
 
-            document = Document(page_content=json.dumps({
-                "address": unified_address,
-                "addressLink": address_link,
-                "confidence": confidence,
-                "description": description,
-                "hoursOfOperation": hours_of_operation,
-                "id": doc_id,
-                "isSaved": is_saved,
-                "latitude": latitude,
-                "longitude": longitude,
-                "name": name,
-                "phone": phone,
-                "rating": rating,
-                "website": website
-            }), metadata={"source": "test"})
+            document = Document(
+                page_content=json.dumps({
+                    "address": unified_address,
+                    "addressLink": address_link,
+                    "confidence": confidence,
+                    "description": description,
+                    "hoursOfOperation": hours_of_operation,
+                    "id": doc_id,
+                    "isSaved": is_saved,
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "name": name,
+                    "phone": phone,
+                    "rating": rating,
+                    "website": website
+                }),
+                metadata={"source": "test"}
+            )
 
             documents.append(document)
 
         return documents
 
-def build_table_column_retriever(connection_uri, table_name, column_names, embedding_column_name):
+
+def build_table_column_retriever(connection_uri, table_name):
     conn = connect(connection_uri)
     cursor = conn.cursor()
 
-    # Fetch embeddings and content from the database
-    columns_str = ', '.join(column_names)
-    cursor.execute(f"SELECT {columns_str}, {embedding_column_name} FROM {table_name};")
-
+    cursor.execute(f"SELECT * FROM {table_name};")
     rows = cursor.fetchall()
+    columns = [desc[0] for desc in cursor.description]
 
-    documents = [
-        Document(page_content="##".join([str(row[i]) for i in range(len(column_names))]))
-        for row in rows
-    ]
+    embedding_idx = columns.index("embedding")
 
-    embeddings = [np.array(ast.literal_eval(row[len(column_names)])) for row in rows]
+    documents = []
+    embeddings = []
 
-    # Initialize OpenAIEmbeddings from LangChain
+    for row in rows:
+        row_dict = {}
+
+        for i, col in enumerate(columns):
+            if col != "embedding":
+                row_dict[col] = row[i]
+
+        documents.append(
+            Document(page_content=json.dumps(row_dict, default=str))
+        )
+
+        embeddings.append(
+            np.array(ast.literal_eval(row[embedding_idx]))
+        )
+
+    cursor.close()
+    conn.close()
+
     openai_embeddings = OpenAIEmbeddings()
 
-    # Create the retriever with OpenAI embeddings
-    retriever = TableColumnRetriever(documents=documents, embeddings=embeddings, k=5, openai_embeddings=openai_embeddings)
+    retriever = TableColumnRetriever(
+        documents=documents,
+        embeddings=embeddings,
+        k=10,
+        openai_embeddings=openai_embeddings
+    )
 
     return retriever
