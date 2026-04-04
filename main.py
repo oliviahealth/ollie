@@ -94,7 +94,7 @@ def create_app():
 
     @app.before_request
     def protect_admin():
-        if not request.path.startswith("/admin"):
+        if not request.path.startswith("/ollieadmin"):
             return
 
         try:
@@ -133,7 +133,7 @@ def setup_database(app):
 
 
 def setup_admin(app):
-    admin = Admin(app, name='ollie')
+    admin = Admin(app, name='ollie', url="/ollieadmin")
     models = get_models()
     admin.add_view(LocationModelView(
         models.location, db.session, embeddings_model))
