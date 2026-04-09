@@ -19,6 +19,7 @@ LOCAL_RESOURCES_CSV_PATH = "/seed/local_resource_rows.csv"
 VIDEO_SPOTLIGHTS_CSV_PATH = "/seed/video_spotlight_rows.csv"
 QUICK_TIPS_CSV_PATH = "/seed/quick_tip_rows.csv"
 INFOGRAPHICS_CSV_PATH = "/seed/infographic_rows.csv"
+ISLANDS_CSV_PATH = "/seed/island_rows.csv"
 
 
 def create_minimal_app():
@@ -68,6 +69,7 @@ def reset_tables():
             quick_tips,
             infographics,
             "location",
+            islands,
             message_store
         RESTART IDENTITY CASCADE;
         """
@@ -108,6 +110,13 @@ def seed_infographics():
         "(id, title, description, thumbnail_url, infographic_url, url, path, spotlight)",
     )
 
+def seed_islands():
+    psql_copy(
+        "islands",
+        ISLANDS_CSV_PATH,
+        "(id, name, data)",
+    )
+
 def seed_langchain_pg_collection():
     psql_copy(
         "langchain_pg_collection",
@@ -129,35 +138,38 @@ if __name__ == "__main__":
 
     app = create_minimal_app()
 
-    # with app.app_context():
-    #     print("==> Enabling pgvector extension...")
-    #     ensure_pgvector_extension()
+    with app.app_context():
+        print("==> Enabling pgvector extension...")
+        ensure_pgvector_extension()
 
-    #     print("==> Creating app tables (SQLAlchemy models)...")
-    #     init_db.create_all()
+        print("==> Creating app tables (SQLAlchemy models)...")
+        init_db.create_all()
 
-    #     print("==> Resetting tables...")
-    #     reset_tables()
+        print("==> Resetting tables...")
+        reset_tables()
 
-    #     print("==> Seeding location table...")
-    #     seed_location()
+        print("==> Seeding location table...")
+        seed_location()
 
-    #     print("==> Seeding local_resources table...")
-    #     seed_local_resources()
+        print("==> Seeding local_resources table...")
+        seed_local_resources()
 
-    #     print("==> Seeding video_spotlights table...")
-    #     seed_video_spotlights()
+        print("==> Seeding video_spotlights table...")
+        seed_video_spotlights()
 
-    #     print("==> Seeding quick_tips table...")
-    #     seed_quick_tips()
+        print("==> Seeding quick_tips table...")
+        seed_quick_tips()
 
-    #     print("==> Seeding langchain_pg_collection...")
-    #     seed_langchain_pg_collection()
+        print("==> Seeding langchain_pg_collection...")
+        seed_langchain_pg_collection()
 
-    #     print("==> Seeding langchain_pg_embedding...")
-    #     seed_langchain_pg_embedding()
+        print("==> Seeding langchain_pg_embedding...")
+        seed_langchain_pg_embedding()
 
-    #     print("==> Seeding infographics...")
-    #     seed_infographics()
+        print("==> Seeding infographics...")
+        seed_infographics()
+
+        print("==> Seeding islands...")
+        seed_islands()
 
     print("init_app complete")
