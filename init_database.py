@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.types import UserDefinedType
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from werkzeug.security import generate_password_hash, check_password_hash
 
 init_db = SQLAlchemy()
@@ -158,6 +158,20 @@ class Infographics(init_db.Model):
     url = init_db.Column(init_db.String(), nullable=False)
     path = init_db.Column(init_db.String(), nullable=False)
     spotlight = init_db.Column(init_db.Boolean(), nullable=True)
+
+class Islands(init_db.Model):
+    __tablename__ = "islands"
+
+    id = init_db.Column(
+        init_db.String(),
+        primary_key=True,
+        server_default=init_db.text("gen_random_uuid()::text")
+    )
+
+    name = init_db.Column(init_db.String(), nullable=False)
+
+    data = init_db.Column(JSONB, nullable=False) ## { id, name, icon, secondary_name, description, subcategories: [ { id, name, infographics: [ infographic.id ] } ] }
+
     
     
 class LangchainPGCollection(init_db.Model):
