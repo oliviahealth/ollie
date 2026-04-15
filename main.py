@@ -16,6 +16,7 @@ from retrievers.TableColumnRetriever import build_table_column_retriever
 from socketio_instance import socketio
 from database import db, bcrypt, load_models, get_models
 from init_database import AdminUser
+from flask_admin.contrib.sqla import ModelView
 from admin_panel.LocationModelView import LocationModelView
 from admin_panel.DocumentModelView import DocumentModelView
 from routes.search_routes import search_routes_bp
@@ -145,6 +146,7 @@ def setup_admin(app):
                     db.session, embeddings_model, s3))
     admin.add_view(DocumentModelView(models.infographics,
                     db.session, embeddings_model, s3))
+    admin.add_view(ModelView(models.islands, db.session))
 
 
 app = create_app()
