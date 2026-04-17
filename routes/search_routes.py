@@ -6,6 +6,7 @@ import json
 
 from route_handlers.query_handlers import search_direct_questions, search_location_questions, determine_search_type
 from route_handlers.lightsail_handlers import initialize_lightsail_s3_instance
+import uuid
 
 # from init_database import message_store, Location, db
 from database import db, load_models
@@ -49,6 +50,7 @@ def get_resources():
         s3_client = initialize_lightsail_s3_instance()
         professional_items = s3_client.list_objects_v2(Bucket=BUCKET_NAME, Prefix="professional_items/")
         results["professional_items"] = [{
+            "id": str(uuid.uuid4()),
             "key": item["Key"],
             "size": item["Size"],
             "lastModified": item["LastModified"],
