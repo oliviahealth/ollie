@@ -1,8 +1,11 @@
+import os
+
 from flask import Blueprint, render_template, request, Response
 import time
 import json
 
 from route_handlers.query_handlers import search_direct_questions, search_location_questions, determine_search_type
+from route_handlers.lightsail_handlers import initialize_lightsail_s3_instance
 
 # from init_database import message_store, Location, db
 from database import db, load_models
@@ -37,6 +40,23 @@ def get_resources():
             }
             for resource in resources
         ]
+    
+    # get the professional items from s3
+    BUCKET_NAME = os.getenv("AWS_S3_BUCKET_NAME")
+    DEFAULT_REGION = os.getenv("AWS_DEFAULT_REGION")
+    BUCKET_BASE_URL = f"https://{BUCKET_NAME}.s3.{DEFAULT_REGION}.amazonaws.com"
+    try:
+        s3_client = initialize_lightsail_s3_instance()
+        professional_items = s3_client.list_objects_v2(Bucket=BUCKET_NAME, Prefix="professional_items/")
+        results["professional_items"] = [{
+            "key": item["Key"],
+            "size": item["Size"],
+            "lastModified": item["LastModified"],
+            "url": f"{BUCKET_BASE_URL}/{item['Key']}"
+        } for item in professional_items.get("Contents", []) if item["Size"] > 0]
+    except Exception as _:
+        results["professional_items"] = [] # set as an empty list for now
+
 
     return Response(
         json.dumps(results, default=str),

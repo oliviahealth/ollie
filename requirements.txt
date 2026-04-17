@@ -45,6 +45,7 @@ PyYAML==6.0.3
 pillow==11.3.0
 WTForms==3.2.1
 boto3
+boto3-stubs[s3]
 flask-admin
 pdf2image
 pytesseract
