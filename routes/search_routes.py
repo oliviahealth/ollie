@@ -12,6 +12,7 @@ from route_handlers.query_handlers import search_direct_questions, search_locati
 # from init_database import message_store, Location, db
 from database import db, load_models
 s3_bucket_name = os.getenv("AWS_S3_BUCKET_NAME")
+default_region = os.getenv("AWS_DEFAULT_REGION")
 
 search_routes_bp = Blueprint('search_routes', __name__)
 
@@ -54,7 +55,7 @@ def get_resources():
             "key": item["Key"],
             "size": item["Size"],
             "lastModified": item["LastModified"],
-            "url": f"{s3_bucket_name}/{item['Key']}"
+            "url": f"https://{s3_bucket_name}.s3.{default_region}.amazonaws.com/{item['Key']}"
         } for item in professional_items.get("Contents", []) if item["Size"] > 0]
     except Exception as e:
         results["professional_items"] = []  # set as an empty list for now
