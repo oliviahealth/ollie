@@ -5,10 +5,11 @@ from flask_cors import CORS
 from flask_admin import Admin
 from dotenv import load_dotenv
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, set_access_cookies, verify_jwt_in_request
-import boto3
 import langchain
 from langchain.embeddings import OpenAIEmbeddings
 from datetime import timedelta
+
+from utils.s3 import create_s3
 
 from retrievers import retriever_store
 from retrievers.PGVectorRetriever import build_pg_vector_retriever
@@ -25,9 +26,14 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 connection_uri = os.getenv("POSTGRES_DSN")
 langchain_pg_collection_name = os.getenv("LANGCHAIN_PG_COLLECTION_NAME")
 
+s3_region_name = os.getenv("AWS_DEFAULT_REGION")
+s3_access_key_id = os.getenv("AWS_S3_ACCESS_KEY_ID")
+s3_secret_access_key = os.getenv("AWS_S3_SECRET_ACCESS_KEY")
+
 embeddings_model = OpenAIEmbeddings(openai_api_key=openai_api_key)
 
 load_dotenv()
+s3 = create_s3(s3_region_name, s3_access_key_id, s3_secret_access_key)
 
 # Creating a TableColumnRetriever to index all of the columns for the location table when retrieving documents (location based questions)
 retriever_store.table_column_retriever = build_table_column_retriever(
@@ -37,13 +43,6 @@ retriever_store.table_column_retriever = build_table_column_retriever(
 
 retriever_store.pg_vector_retriever = build_pg_vector_retriever(
     langchain_pg_collection_name, embeddings_model, connection_uri)
-
-s3 = boto3.client(
-    "s3",
-    region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"),
-    aws_access_key_id=os.getenv("AWS_S3_ACCESS_KEY_ID"),
-    aws_secret_access_key=os.getenv("AWS_S3_SECRET_ACCESS_KEY"),
-)
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 

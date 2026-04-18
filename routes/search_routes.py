@@ -1,11 +1,17 @@
+import os
+import uuid
+
 from flask import Blueprint, render_template, request, Response
 import time
 import json
+
+from utils.s3 import s3
 
 from route_handlers.query_handlers import search_direct_questions, search_location_questions, determine_search_type
 
 # from init_database import message_store, Location, db
 from database import db, load_models
+s3_bucket_name = os.getenv("AWS_S3_BUCKET_NAME")
 
 search_routes_bp = Blueprint('search_routes', __name__)
 
@@ -37,6 +43,19 @@ def get_resources():
             }
             for resource in resources
         ]
+
+    try:
+        professional_items = s3.list_objects_v2(
+            Bucket=s3_bucket_name, Prefix="professional_items/")
+        results["professional_items"] = [{
+            "id": str(uuid.uuid4()),
+            "key": item["Key"],
+            "size": item["Size"],
+            "lastModified": item["LastModified"],
+            "url": f"{s3_bucket_name}/{item['Key']}"
+        } for item in professional_items.get("Contents", [])]
+    except Exception as _:
+        results["professional_items"] = []  # set as an empty list for now
 
     return Response(
         json.dumps(results, default=str),
@@ -217,7 +236,7 @@ def delete_conversation():
 
     try:
         deleted_count = (
-    db.session.query(models.message_store)
+            db.session.query(models.message_store)
             .filter(models.message_store.session_id == conversation_id)
             .delete(synchronize_session=False)
         )

@@ -155,7 +155,7 @@ class Infographics(init_db.Model):
     description = init_db.Column(init_db.String(), nullable=True)
     thumbnail_url = init_db.Column(init_db.String(), nullable=True)
     infographic_url = init_db.Column(init_db.String(), nullable=False)
-    url = init_db.Column(init_db.String(), nullable=False)
+    url = init_db.Column(init_db.String(), nullable=True)
     path = init_db.Column(init_db.String(), nullable=False)
     spotlight = init_db.Column(init_db.Boolean(), nullable=True)
 
