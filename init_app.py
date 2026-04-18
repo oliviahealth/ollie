@@ -138,38 +138,38 @@ if __name__ == "__main__":
 
     app = create_minimal_app()
 
-    with app.app_context():
-        print("==> Enabling pgvector extension...")
-        ensure_pgvector_extension()
+    # with app.app_context():
+    #     print("==> Enabling pgvector extension...")
+    #     ensure_pgvector_extension()
 
-        print("==> Creating app tables (SQLAlchemy models)...")
-        init_db.create_all()
+    #     print("==> Creating app tables (SQLAlchemy models)...")
+    #     init_db.create_all()
 
-        print("==> Resetting tables...")
-        reset_tables()
+    #     print("==> Resetting tables...")
+    #     reset_tables()
 
-        print("==> Seeding location table...")
-        seed_location()
+    #     print("==> Seeding location table...")
+    #     seed_location()
 
-        print("==> Seeding local_resources table...")
-        seed_local_resources()
+    #     print("==> Seeding local_resources table...")
+    #     seed_local_resources()
 
-        print("==> Seeding video_spotlights table...")
-        seed_video_spotlights()
+    #     print("==> Seeding video_spotlights table...")
+    #     seed_video_spotlights()
 
-        print("==> Seeding quick_tips table...")
-        seed_quick_tips()
+    #     print("==> Seeding quick_tips table...")
+    #     seed_quick_tips()
 
-        print("==> Seeding langchain_pg_collection...")
-        seed_langchain_pg_collection()
+    #     print("==> Seeding langchain_pg_collection...")
+    #     seed_langchain_pg_collection()
 
-        print("==> Seeding langchain_pg_embedding...")
-        seed_langchain_pg_embedding()
+    #     print("==> Seeding langchain_pg_embedding...")
+    #     seed_langchain_pg_embedding()
 
-        print("==> Seeding infographics...")
-        seed_infographics()
+    #     print("==> Seeding infographics...")
+    #     seed_infographics()
 
-        print("==> Seeding islands...")
-        seed_islands()
+    #     print("==> Seeding islands...")
+    #     seed_islands()
 
     print("init_app complete")
