@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, request, Response
 import time
 import json
 
-from utils.s3 import s3
+from utils.s3 import get_s3
 
 from route_handlers.query_handlers import search_direct_questions, search_location_questions, determine_search_type
 
@@ -45,16 +45,18 @@ def get_resources():
         ]
 
     try:
+        s3 = get_s3()
+        
         professional_items = s3.list_objects_v2(
-            Bucket=s3_bucket_name, Prefix="professional_items/")
+            Bucket=s3_bucket_name, Prefix="professional_items/", Delimiter="/")
         results["professional_items"] = [{
             "id": str(uuid.uuid4()),
             "key": item["Key"],
             "size": item["Size"],
             "lastModified": item["LastModified"],
             "url": f"{s3_bucket_name}/{item['Key']}"
-        } for item in professional_items.get("Contents", [])]
-    except Exception as _:
+        } for item in professional_items.get("Contents", []) if item["Size"] > 0]
+    except Exception as e:
         results["professional_items"] = []  # set as an empty list for now
 
     return Response(
