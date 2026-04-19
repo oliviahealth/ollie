@@ -55,7 +55,7 @@ def get_resources():
             "key": item["Key"],
             "size": item["Size"],
             "lastModified": item["LastModified"],
-            "url": f"https://{s3_bucket_name}.s3.{default_region}.amazonaws.com/{item['Key']}"
+            "path": item['Key']
         } for item in professional_items.get("Contents", []) if item["Size"] > 0]
     except Exception as e:
         results["professional_items"] = []  # set as an empty list for now
