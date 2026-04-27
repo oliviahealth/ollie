@@ -9,6 +9,6 @@ def build_pg_vector_retriever(collection_name, embeddings_model, connection_uri)
         use_jsonb=True,
     )
 
-    pg_vector_retriever = pg_vector_store.as_retriever(search_type="mmr", search_kwargs={"k": 10})
+    pg_vector_retriever = pg_vector_store.as_retriever(search_type="similarity_score_threshold", search_kwargs={"k": 10, "score_threshold": 0.75})
 
     return pg_vector_retriever
