@@ -52,7 +52,7 @@ def get_resources():
             Bucket=s3_bucket_name, Prefix="professional_items/", Delimiter="/")
         results["professional_items"] = [{
             "id": str(uuid.uuid4()),
-            "key": item["Key"],
+            "title": item["Key"],
             "size": item["Size"],
             "lastModified": item["LastModified"],
             "path": item['Key']
