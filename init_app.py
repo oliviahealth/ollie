@@ -20,6 +20,7 @@ VIDEO_SPOTLIGHTS_CSV_PATH = "/seed/video_spotlight_rows.csv"
 QUICK_TIPS_CSV_PATH = "/seed/quick_tip_rows.csv"
 INFOGRAPHICS_CSV_PATH = "/seed/infographic_rows.csv"
 ISLANDS_CSV_PATH = "/seed/island_rows.csv"
+PROFESSIONAL_RESOURCES_CSV_PATH = "/seed/professional_resource_rows.csv"
 
 
 def create_minimal_app():
@@ -117,6 +118,13 @@ def seed_islands():
         "(id, name, data)",
     )
 
+def seed_professional_resources():
+    psql_copy(
+        "professional_resources",
+        PROFESSIONAL_RESOURCES_CSV_PATH,
+        "(id, name, data)",
+    )
+
 def seed_langchain_pg_collection():
     psql_copy(
         "langchain_pg_collection",
@@ -171,5 +179,8 @@ if __name__ == "__main__":
 
     #     print("==> Seeding islands...")
     #     seed_islands()
+
+    #     print("==> Seeding professional_resources...")
+    #     seed_professional_resources()
 
     print("init_app complete")

@@ -146,6 +146,7 @@ def setup_admin(app):
     admin.add_view(DocumentModelView(models.infographics,
                     db.session, embeddings_model, s3))
     admin.add_view(ModelView(models.islands, db.session))
+    admin.add_view(ModelView(models.professional_resources, db.session))
 
 
 app = create_app()

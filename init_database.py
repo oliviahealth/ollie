@@ -172,7 +172,18 @@ class Islands(init_db.Model):
 
     data = init_db.Column(JSONB, nullable=False) ## { id, name, icon, secondary_name, description, subcategories: [ { id, name, infographics: [ infographic.id ] } ] }
 
-    
+class ProfessionalResources(init_db.Model):
+    __tablename__ = "professional_resources"
+
+    id = init_db.Column(
+        init_db.String(),
+        primary_key=True,
+        server_default=init_db.text("gen_random_uuid()::text")
+    )
+
+    name = init_db.Column(init_db.String(), nullable=False)
+
+    data = init_db.Column(JSONB, nullable=False) ## { id, name, description, resources: [ { name, description, infographics: [ infographic.id ] } ] }
     
 class LangchainPGCollection(init_db.Model):
     __tablename__ = "langchain_pg_collection"

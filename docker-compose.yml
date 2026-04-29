@@ -12,6 +12,7 @@ services:
       - ./data/quick_tip_rows.csv:/seed/quick_tip_rows.csv:ro
       - ./data/infographic_rows.csv:/seed/infographic_rows.csv:ro
       - ./data/island_rows.csv:/seed/island_rows.csv:ro
+      - ./data/professional_resource_rows.csv:/seed/professional_resource_rows.csv:ro
       - ./packages/flask-admin:/deps/flask-admin
     command: >
       sh -c "pip uninstall -y flask-admin || true &&
