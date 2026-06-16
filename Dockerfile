@@ -32,4 +32,4 @@ ENV PORT=5050
 
 EXPOSE 5050
 
-CMD ["gunicorn", "-k", "eventlet", "-w", "1", "-b", "0.0.0.0:5050", "main:app"]
+CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5050", "main:app"]
