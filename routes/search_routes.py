@@ -47,7 +47,6 @@ def get_resources():
 
     try:
         s3 = get_s3()
-        
         professional_items = s3.list_objects_v2(
             Bucket=s3_bucket_name, Prefix="professional_items/", Delimiter="/")
         results["professional_items"] = [{
@@ -153,12 +152,22 @@ def formatted_db_search():
 
         new_user_message = models.message_store(
             session_id=conversation_id,
-            message=f'{{"type": "human", "data": {{"content": "{search_query}"}}}}'
+            message=json.dumps({
+                "type": "human",
+                "data": {
+                    "content": search_query
+                }
+            })
         )
 
         new_response_message = models.message_store(
             session_id=conversation_id,
-            message=f'{{"type": "ai", "data": {{"content": "{response}"}}}}'
+            message=json.dumps({
+                "type": "ai",
+                "data": {
+                    "content": response
+                }
+            })
         )
 
         db.session.add(new_user_message)
