@@ -1,9 +1,29 @@
-import openai
-import json
 import textwrap
+import os
+
+from pydantic import BaseModel, Field
 
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.documents import Document
+from langchain_openai import ChatOpenAI
+
+class ContextJudge(BaseModel):
+    sufficient: bool = Field(
+        description="True when the provided context is enough to answer the question."
+    )
+
+
+llm = ChatOpenAI(
+    model=os.getenv("CHAT_MODEL"),
+    api_key=os.getenv("TAMU_AI_CHAT_API_KEY"),
+    base_url=os.getenv("TAMU_AI_CHAT_BASE_URL"),
+)
+
+structured_judge = llm.with_structured_output(
+    ContextJudge,
+    method="json_schema",
+    strict=True,
+)
 
 def judge_context(query, context_docs):
     """
@@ -23,20 +43,12 @@ def judge_context(query, context_docs):
     )
     user_msg = f"Question:\n{query}\n\nContext:\n{combined or '[empty]'}"
 
-    resp = openai.chat.completions.create(
-        model="gpt-4o",
-        temperature=0,
-        messages=[
+    try:
+        response = structured_judge.invoke([
             {"role": "system", "content": system_msg},
             {"role": "user", "content": user_msg},
-        ],
-    )
-
-    content = resp.choices[0].message.content or "{}"
-
-    try:
-        data = json.loads(content)
-        return bool(data.get("sufficient", False))
+        ])
+        return bool(response.sufficient)
     except Exception:
         return False
     
@@ -56,15 +68,11 @@ def fetch_external_context(conversation_id, query):
     )
 
     try:
-        resp = openai.chat.completions.create(
-            model="gpt-4o",
-            temperature=0.2,
-            messages=[
-                {"role": "system", "content": system_msg},
-                {"role": "user", "content": user_msg},
-            ],
-        )
-        return (resp.choices[0].message.content or "").strip()
+        resp = llm.invoke([
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg},
+        ])
+        return (resp.content or "").strip()
     except Exception:
         return ""
 
