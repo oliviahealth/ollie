@@ -1,14 +1,20 @@
 import ast
 import json
+import os
 from typing import List
 from langchain_core.documents import Document
 from langchain_core.retrievers import BaseRetriever
 from psycopg2 import connect
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-from langchain.embeddings import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 
-
+embeddings_provider = OpenAIEmbeddings(
+    model=os.getenv("TAMU_AI_CHAT_EMBEDDING_MODEL"),
+    api_key=os.getenv("TAMU_AI_CHAT_API_KEY"),
+    base_url=os.getenv("TAMU_AI_CHAT_BASE_URL"),
+    check_embedding_ctx_length=False,
+)
 class TableColumnRetriever(BaseRetriever):
     """A retriever that retrieves top-k documents for a given table and its columns based on OpenAI embedding similarity."""
 
@@ -129,13 +135,11 @@ def build_table_column_retriever(connection_uri, table_name):
     cursor.close()
     conn.close()
 
-    openai_embeddings = OpenAIEmbeddings()
-
     retriever = TableColumnRetriever(
         documents=documents,
         embeddings=embeddings,
         k=10,
-        openai_embeddings=openai_embeddings
+        openai_embeddings=embeddings_provider
     )
 
     return retriever
