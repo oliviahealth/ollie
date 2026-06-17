@@ -89,9 +89,12 @@ def load_and_store_locations(embeddings_model, csv_path, database_uri):
         session.commit()
         session.close()
 
-# Using OpenAI embeddings for now
-openai_api_key = os.getenv("OPENAI_API_KEY")
-embeddings_model = OpenAIEmbeddings(openai_api_key=openai_api_key)
+embeddings_model = OpenAIEmbeddings(
+    model=os.getenv("TAMU_AI_CHAT_EMBEDDING_MODEL"),
+    api_key=os.getenv("TAMU_AI_CHAT_API_KEY"),
+    base_url=os.getenv("TAMU_AI_CHAT_BASE_URL"),
+    check_embedding_ctx_length=False,
+)
 
 csv_path = "knowledge_base/locations.csv"
 

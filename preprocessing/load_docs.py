@@ -279,9 +279,12 @@ docs_path = "./knowledge_base/"
 collection_name = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 database_uri = os.getenv("POSTGRESQL_CONNECTION_STRING")
 
-# Using OpenAI embeddings for now
-openai_api_key = os.getenv("OPENAI_API_KEY")
-embeddings_model = OpenAIEmbeddings(openai_api_key=openai_api_key)
+embeddings_model = OpenAIEmbeddings(
+    model=os.getenv("TAMU_AI_CHAT_EMBEDDING_MODEL"),
+    api_key=os.getenv("TAMU_AI_CHAT_API_KEY"),
+    base_url=os.getenv("TAMU_AI_CHAT_BASE_URL"),
+    check_embedding_ctx_length=False,
+)
 
 # load_docs(embeddings_model=embeddings_model, documents_path=docs_path,
 #           collection_name=collection_name, database_uri=database_uri)
