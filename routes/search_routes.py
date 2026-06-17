@@ -138,17 +138,15 @@ def formatted_db_search():
     # Determine weather search_query is a direct question or location based
     # Select which tool to invoke (search_direct_question for direct questions, search_location_question for location based question)
     determine_search_type_response = determine_search_type(messages)
-    tool_calls = determine_search_type_response.choices[0].message.tool_calls
+    function_name = determine_search_type_response.get("function_name")
 
-    if (tool_calls):
-        function_name = tool_calls[0].function.name
-    else:
+    if (function_name == "follow_up"):
         '''
         Follow up question is needed for more information.
         Need to manually add the user query and ai response to the db
         '''
 
-        response = determine_search_type_response.choices[0].message.content
+        response = determine_search_type_response.get("response")
 
         new_user_message = models.message_store(
             session_id=conversation_id,
@@ -187,8 +185,7 @@ def formatted_db_search():
 
     # determine_search_type() will also create a summary of the conversation history
     # Extract the summarized query and pass it into the search handler
-    arguments = json.loads(tool_calls[0].function.arguments)
-    summarized_query = arguments['query']
+    summarized_query = determine_search_type_response.get("query", "")
 
     if (function_name == 'search_direct_questions'):
         response_type = 'direct'

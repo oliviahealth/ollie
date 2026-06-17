@@ -1,15 +1,41 @@
 import json
 import os
-import openai
+
+from typing import Literal, Optional
+from pydantic import BaseModel, Field
 
 from chains.conversational_retrieval_chain_with_memory import build_conversational_retrieval_chain_with_memory
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 
 from socketio_instance import socketio
 import retrievers.retriever_store as retriever_store
 
-llm = ChatOpenAI()
 connection_uri = os.getenv("POSTGRES_DSN")
+
+# 1. Define the structural schema using Pydantic
+class SearchClassification(BaseModel):
+    function_name: Literal["search_direct_questions", "search_location_questions", "follow_up"] = Field(
+        description="The appropriate function strategy to execute based on the user's intent."
+    )
+    query: str = Field(
+        description="The summarized search query. MUST be an empty string if function_name is 'follow_up'."
+    )
+    response: Optional[str] = Field(
+        default="",
+        description="The user-facing follow-up response message. Only required if function_name is 'follow_up'."
+    )
+
+llm = ChatOpenAI(
+    model=os.getenv("CHAT_MODEL"),
+    api_key=os.getenv("TAMU_AI_CHAT_API_KEY"),
+    base_url=os.getenv("TAMU_AI_CHAT_BASE_URL")
+)
+
+structured_classifier = llm.with_structured_output(
+    SearchClassification,
+    method="json_schema",
+    strict=True,
+)
 
 def search_direct_questions(conversation_id, search_query, allow_external):
     '''
@@ -65,70 +91,22 @@ def search_location_questions(conversation_id, search_query):
 
 def determine_search_type(messages):
     '''
-    Given a search query, determine weather its a location-based or direct-answer question or if more information is needed.
-    Reconstruct the entire conversation history, then prompt OpenAI with tools to make the determination
-    Need to provide an array of tools so OpenAI can make the reccomendation. See: https://platform.openai.com/docs/assistants/tools/function-calling
+    Given a search query, determine whether it's location-based, direct-answer, or needs follow-up.
+    Returns a JSON object with the selected function name, summarized query, and optional follow-up response.
     '''
 
-    # Prompt OpenAI to make determination
-    response = openai.chat.completions.create(
-        model="gpt-4o",
-        messages=messages,
-        tools=tools,
-    )
-
-    # If we have a refusal (ex: for unsafe questions), return an error
-    refusal = response.choices[0].message.refusal
-    if (refusal):
-        return "Something went wrong: OpenAi Classification Refusal", 500
-    
-    return response
-
-
-# Defining list of tools to use with OpenAI function calling
-tools = [
-    {
-        "type": 'function',
-        "function": {
-            "name": "search_direct_questions",
-            "description": "Retrieve a direct answer from the knowlege base based on a user question. Call this whenever you get a direct question that should be answer without a specific location. For example when a user asks 'newborn nutritional advice' or 'birth control alternatives'",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "description": "The conversation id. For new conversations, this will be null, however for existing conversations, this will be passed in by the user to continue that conversation",
-                    },
-                    "query": {
-                        "type": "string",
-                        "description": "The question the user is trying to find an answer for"
-                    }
-                },
-                "required": ["id", "query"],
-                "additionalProperties": False
-            }
-        }
-    },
-    {
-        "type": 'function',
-        "function": {
-            "name": "search_location_questions",
-            "description": "Retrieve a location from the locations table based on a user question. Call this whenever you get a question that should be answer with a specific location. For example when a user asks 'mental health support in Bryan, Texas' or 'Where can i get a root canal in Corpus Christi'",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "description": "The conversation id. For new conversations, this will be null, however for existing conversations, this will be passed in by the user to continue that conversation",
-                    },
-                    "query": {
-                        "type": "string",
-                        "description": "The question the user is trying to find an answer for"
-                    }
-                },
-                "required": ["id", "query"],
-                "additionalProperties": False
-            }
-        }
+    system_instruction = {
+        "role": "system",
+        "content": (
+            "Analyze the conversation history. Select 'search_direct_questions' for general knowledge, "
+            "'search_location_questions' for local/map queries, or 'follow_up' if you need the user "
+            "to clarify or give more information. If you select 'follow_up', the 'query' property "
+            "must be empty, and you must write a helpful follow-up question in the 'response' property."
+        )
     }
-]
+    
+    classifier_messages = messages + [system_instruction]
+
+    response = structured_classifier.invoke(classifier_messages)
+
+    return response.model_dump() if hasattr(response, "model_dump") else response
