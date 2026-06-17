@@ -8,7 +8,12 @@ from retrievers.TableColumnRetriever import build_table_column_retriever
 connection_uri = os.getenv("POSTGRES_DSN")
 langchain_pg_collection_name = os.getenv("LANGCHAIN_PG_COLLECTION_NAME")
 
-openai_embeddings = OpenAIEmbeddings()
+embeddings_provider = OpenAIEmbeddings(
+    model=os.getenv("TAMU_AI_CHAT_EMBEDDING_MODEL"),
+    api_key=os.getenv("TAMU_AI_CHAT_API_KEY"),
+    base_url=os.getenv("TAMU_AI_CHAT_BASE_URL"),
+    check_embedding_ctx_length=False,
+)
 
 table_column_retriever = None
 pg_vector_retriever = None
@@ -20,7 +25,7 @@ _pg_vector_retriever_lock = threading.Lock()
 _table_column_retriever_lock = threading.Lock()
 
 def rebuild_pg_vector_retriever(version):
-    new_retriever = build_pg_vector_retriever(langchain_pg_collection_name, openai_embeddings, connection_uri)
+    new_retriever = build_pg_vector_retriever(langchain_pg_collection_name, embeddings_provider, connection_uri)
 
     with _pg_vector_retriever_lock:
         if version != _pg_vector_retriever_rebuild_version:
