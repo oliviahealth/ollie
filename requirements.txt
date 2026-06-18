@@ -13,6 +13,7 @@ eventlet
 SQLAlchemy==2.0.43
 psycopg2-binary==2.9.10
 pgvector==0.3.6
+pandas==2.2.3
 
 # --- LangChain / RAG ---
 langchain==0.3.27
