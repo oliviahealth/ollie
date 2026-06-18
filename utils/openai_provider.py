@@ -16,7 +16,7 @@ def _env(name, default=None):
 @lru_cache(maxsize=1)
 def get_chat_model():
     return ChatOpenAI(
-        model=_env("CHAT_MODEL", "protected.gpt-5.4-nano"),
+        model=_env("CHAT_MODEL"),
         api_key=_env("TAMU_AI_CHAT_API_KEY"),
         base_url=_env("TAMU_AI_CHAT_BASE_URL"),
     )
@@ -25,7 +25,7 @@ def get_chat_model():
 @lru_cache(maxsize=1)
 def get_embeddings_model():
     return OpenAIEmbeddings(
-        model=_env("TAMU_AI_EMBEDDING_MODEL", "protected.text-embedding-3-small"),
+        model=_env("TAMU_AI_CHAT_EMBEDDING_MODEL"),
         api_key=_env("TAMU_AI_CHAT_API_KEY"),
         base_url=_env("TAMU_AI_CHAT_BASE_URL"),
         check_embedding_ctx_length=False,
