@@ -1,11 +1,10 @@
 import textwrap
-import os
 
 from pydantic import BaseModel, Field
 
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.documents import Document
-from langchain_openai import ChatOpenAI
+from utils.openai_provider import get_chat_model
 
 class ContextJudge(BaseModel):
     sufficient: bool = Field(
@@ -13,11 +12,7 @@ class ContextJudge(BaseModel):
     )
 
 
-llm = ChatOpenAI(
-    model=os.getenv("CHAT_MODEL"),
-    api_key=os.getenv("TAMU_AI_CHAT_API_KEY"),
-    base_url=os.getenv("TAMU_AI_CHAT_BASE_URL"),
-)
+llm = get_chat_model()
 
 structured_judge = llm.with_structured_output(
     ContextJudge,

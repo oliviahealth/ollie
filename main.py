@@ -6,10 +6,10 @@ from flask_admin import Admin
 from dotenv import load_dotenv
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, set_access_cookies, verify_jwt_in_request
 import langchain
-from langchain.embeddings import OpenAIEmbeddings
 from datetime import timedelta
 
 from utils.s3 import create_s3
+from utils.openai_provider import get_embeddings_model
 
 from retrievers import retriever_store
 from retrievers.PGVectorRetriever import build_pg_vector_retriever
@@ -22,7 +22,6 @@ from admin_panel.LocationModelView import LocationModelView
 from admin_panel.DocumentModelView import DocumentModelView
 from routes.search_routes import search_routes_bp
 
-openai_api_key = os.getenv("OPENAI_API_KEY")
 connection_uri = os.getenv("POSTGRES_DSN")
 langchain_pg_collection_name = os.getenv("LANGCHAIN_PG_COLLECTION_NAME")
 
@@ -30,7 +29,7 @@ s3_region_name = os.getenv("AWS_DEFAULT_REGION")
 s3_access_key_id = os.getenv("AWS_S3_ACCESS_KEY_ID")
 s3_secret_access_key = os.getenv("AWS_S3_SECRET_ACCESS_KEY")
 
-embeddings_model = OpenAIEmbeddings(openai_api_key=openai_api_key)
+embeddings_model = get_embeddings_model()
 
 load_dotenv()
 s3 = create_s3(s3_region_name, s3_access_key_id, s3_secret_access_key)

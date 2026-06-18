@@ -5,6 +5,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from database import load_models
 
+from utils.openai_provider import get_embeddings_model
+
+embeddings_model = get_embeddings_model()
+
 def load_and_store_locations(embeddings_model, csv_path, database_uri):
     """
     Load location data from a CSV, insert data into the 'location' table, 
@@ -88,13 +92,6 @@ def load_and_store_locations(embeddings_model, csv_path, database_uri):
 
         session.commit()
         session.close()
-
-embeddings_model = OpenAIEmbeddings(
-    model=os.getenv("TAMU_AI_CHAT_EMBEDDING_MODEL"),
-    api_key=os.getenv("TAMU_AI_CHAT_API_KEY"),
-    base_url=os.getenv("TAMU_AI_CHAT_BASE_URL"),
-    check_embedding_ctx_length=False,
-)
 
 csv_path = "knowledge_base/locations.csv"
 

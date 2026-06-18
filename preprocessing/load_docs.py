@@ -17,10 +17,11 @@ from langchain.text_splitter import NLTKTextSplitter
 from langchain.document_loaders import TextLoader
 from langchain_postgres import PGVector
 from langchain_postgres.vectorstores import PGVector
-from langchain.embeddings import OpenAIEmbeddings
+
+from utils.openai_provider import get_embeddings_model
 
 text_splitter = NLTKTextSplitter()
-
+embeddings_model = get_embeddings_model()
 
 def transcribe_image(image):
     try:
@@ -278,13 +279,6 @@ def load_docs(embeddings_model, documents_path, collection_name, database_uri):
 docs_path = "./knowledge_base/"
 collection_name = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 database_uri = os.getenv("POSTGRESQL_CONNECTION_STRING")
-
-embeddings_model = OpenAIEmbeddings(
-    model=os.getenv("TAMU_AI_CHAT_EMBEDDING_MODEL"),
-    api_key=os.getenv("TAMU_AI_CHAT_API_KEY"),
-    base_url=os.getenv("TAMU_AI_CHAT_BASE_URL"),
-    check_embedding_ctx_length=False,
-)
 
 # load_docs(embeddings_model=embeddings_model, documents_path=docs_path,
 #           collection_name=collection_name, database_uri=database_uri)

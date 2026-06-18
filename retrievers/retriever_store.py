@@ -1,19 +1,14 @@
 import threading
 import os
 
-from langchain.embeddings import OpenAIEmbeddings
 from retrievers.PGVectorRetriever import build_pg_vector_retriever
 from retrievers.TableColumnRetriever import build_table_column_retriever
+from utils.openai_provider import get_embeddings_model
 
 connection_uri = os.getenv("POSTGRES_DSN")
 langchain_pg_collection_name = os.getenv("LANGCHAIN_PG_COLLECTION_NAME")
 
-embeddings_provider = OpenAIEmbeddings(
-    model=os.getenv("TAMU_AI_CHAT_EMBEDDING_MODEL"),
-    api_key=os.getenv("TAMU_AI_CHAT_API_KEY"),
-    base_url=os.getenv("TAMU_AI_CHAT_BASE_URL"),
-    check_embedding_ctx_length=False,
-)
+embeddings_provider = get_embeddings_model()
 
 table_column_retriever = None
 pg_vector_retriever = None

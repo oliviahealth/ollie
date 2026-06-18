@@ -5,10 +5,10 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 from chains.conversational_retrieval_chain_with_memory import build_conversational_retrieval_chain_with_memory
-from langchain_openai import ChatOpenAI
 
 from socketio_instance import socketio
 import retrievers.retriever_store as retriever_store
+from utils.openai_provider import get_chat_model
 
 connection_uri = os.getenv("POSTGRES_DSN")
 
@@ -25,11 +25,7 @@ class SearchClassification(BaseModel):
         description="The user-facing follow-up response message. Only required if function_name is 'follow_up'."
     )
 
-llm = ChatOpenAI(
-    model=os.getenv("CHAT_MODEL"),
-    api_key=os.getenv("TAMU_AI_CHAT_API_KEY"),
-    base_url=os.getenv("TAMU_AI_CHAT_BASE_URL")
-)
+llm = get_chat_model()
 
 structured_classifier = llm.with_structured_output(
     SearchClassification,
