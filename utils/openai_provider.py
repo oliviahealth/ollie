@@ -3,7 +3,6 @@ from functools import lru_cache
 
 import boto3
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_aws import BedrockEmbeddings, ChatBedrockConverse
 
 load_dotenv()

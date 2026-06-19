@@ -21,7 +21,6 @@ langchain-community==0.3.29
 langchain-core==0.3.76
 langchain-postgres==0.0.15
 langchain-text-splitters==0.3.11
-langchain-openai==0.3.27
 langchain-aws
 langsmith==0.4.31
 scikit-learn
