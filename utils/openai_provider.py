@@ -24,12 +24,12 @@ def _get_bedrock_runtime_client():
 
     access_key = _env("AWS_ADMIN_ACCESS_KEY_ID")
     secret_key = _env("AWS_ADMIN_SECRET_ACCESS_KEY")
-    session_token = _env("AWS_ADMIN_SESSION_TOKEN")
+    # session_token = _env("AWS_ADMIN_SESSION_TOKEN")
 
     if access_key:
         client_kwargs["aws_access_key_id"] = access_key
         client_kwargs["aws_secret_access_key"] = secret_key
-        client_kwargs["aws_session_token"] = session_token
+        # client_kwargs["aws_session_token"] = session_token
 
     return boto3.client(**client_kwargs)
 
