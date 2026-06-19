@@ -40,7 +40,6 @@ def build_conversational_retrieval_chain_with_memory( llm, retriever: BaseRetrie
     )
 
     if socket:
-        llm.streaming = True
         llm.callbacks = [StreamCallbackHandler(socket)]
 
     deciding_retriever = ContextDecidingRetriever(

@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.documents import Document
 from utils.openai_provider import get_chat_model
+from utils.structured_output import invoke_structured_output
 
 class ContextJudge(BaseModel):
     sufficient: bool = Field(
@@ -13,12 +14,6 @@ class ContextJudge(BaseModel):
 
 
 llm = get_chat_model()
-
-structured_judge = llm.with_structured_output(
-    ContextJudge,
-    method="json_schema",
-    strict=True,
-)
 
 def judge_context(query, context_docs):
     """
@@ -39,7 +34,7 @@ def judge_context(query, context_docs):
     user_msg = f"Question:\n{query}\n\nContext:\n{combined or '[empty]'}"
 
     try:
-        response = structured_judge.invoke([
+        response = invoke_structured_output(llm, ContextJudge, [
             {"role": "system", "content": system_msg},
             {"role": "user", "content": user_msg},
         ])

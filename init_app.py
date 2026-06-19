@@ -1,3 +1,4 @@
+import csv
 import os
 import subprocess
 
@@ -134,11 +135,38 @@ def seed_langchain_pg_collection():
 
 
 def seed_langchain_pg_embedding():
-    psql_copy(
-        "langchain_pg_embedding",
-        EMBEDDING_CSV_PATH,
-        "(id, collection_id, embedding, document, cmetadata, resource_id)",
-    )
+    if not os.path.exists(EMBEDDING_CSV_PATH):
+        print(f"⚠️ CSV not found at {EMBEDDING_CSV_PATH}, skipping langchain_pg_embedding seed.")
+        return
+
+    with open(EMBEDDING_CSV_PATH, newline="", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        next(reader)  # skip header
+        rows = list(reader)
+
+    with init_db.engine.begin() as conn:
+        for i, row in enumerate(rows, start=1):
+            try:
+                with conn.begin_nested():
+                    conn.execute(
+                        text(
+                            "INSERT INTO langchain_pg_embedding "
+                            "(id, collection_id, embedding, document, cmetadata, resource_id) "
+                            "VALUES (:id, :collection_id, CAST(:embedding AS vector), :document, CAST(:cmetadata AS json), :resource_id)"
+                        ),
+                        {
+                            "id": row[0],
+                            "collection_id": row[1],
+                            "embedding": row[2],
+                            "document": row[3],
+                            "cmetadata": row[4],
+                            "resource_id": row[5] if len(row) > 5 and row[5] else None,
+                        },
+                    )
+            except Exception as e:
+                print(f"Error inserting row {i} (id={row[0]}): {e}")
+
+    print(f"✅ Seeded langchain_pg_embedding with {len(rows)} rows from {EMBEDDING_CSV_PATH}")
 
 if __name__ == "__main__":
     if not DATABASE_URL:
@@ -156,8 +184,8 @@ if __name__ == "__main__":
     #     print("==> Resetting tables...")
     #     reset_tables()
 
-    #     print("==> Seeding location table...")
-    #     seed_location()
+        # print("==> Seeding location table...")
+        # seed_location()
 
     #     print("==> Seeding local_resources table...")
     #     seed_local_resources()
@@ -171,8 +199,8 @@ if __name__ == "__main__":
     #     print("==> Seeding langchain_pg_collection...")
     #     seed_langchain_pg_collection()
 
-    #     print("==> Seeding langchain_pg_embedding...")
-    #     seed_langchain_pg_embedding()
+        # print("==> Seeding langchain_pg_embedding...")
+        # seed_langchain_pg_embedding()
 
     #     print("==> Seeding infographics...")
     #     seed_infographics()
