@@ -8,6 +8,10 @@ from langchain_aws import BedrockEmbeddings, ChatBedrockConverse
 
 load_dotenv()
 
+chat_model = os.getenv("CHAT_MODEL")
+embedding_model = os.getenv("EMBEDDING_MODEL")
+aws_region = os.getenv("AWS_DEFAULT_REGION")
+
 def _env(name, default=None):
     value = os.getenv(name)
     return value if value else default
@@ -15,7 +19,7 @@ def _env(name, default=None):
 def _get_bedrock_runtime_client():
     client_kwargs = {
         "service_name": "bedrock-runtime",
-        "region_name": _env("AWS_DEFAULT_REGION", "us-east-1"),
+        "region_name": aws_region,
     }
 
     access_key = _env("AWS_ADMIN_ACCESS_KEY_ID")
@@ -33,8 +37,8 @@ def _get_bedrock_runtime_client():
 @lru_cache(maxsize=1)
 def get_chat_model():
     return ChatBedrockConverse(
-        model_id="openai.gpt-oss-120b-1:0",
-        region_name="us-east-1",
+        model_id=chat_model,
+        region_name=aws_region,
         client=_get_bedrock_runtime_client(),
     )
 
@@ -42,7 +46,7 @@ def get_chat_model():
 @lru_cache(maxsize=1)
 def get_embeddings_model():
     return BedrockEmbeddings(
-        model_id="amazon.titan-embed-text-v1",
-        region_name="us-east-1",
+        model_id=embedding_model,
+        region_name=aws_region,
         client=_get_bedrock_runtime_client(),
     )
