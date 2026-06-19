@@ -9,6 +9,7 @@ from chains.conversational_retrieval_chain_with_memory import build_conversation
 from socketio_instance import socketio
 import retrievers.retriever_store as retriever_store
 from utils.openai_provider import get_chat_model
+from utils.structured_output import invoke_structured_output
 
 connection_uri = os.getenv("POSTGRES_DSN")
 
@@ -26,12 +27,6 @@ class SearchClassification(BaseModel):
     )
 
 llm = get_chat_model()
-
-structured_classifier = llm.with_structured_output(
-    SearchClassification,
-    method="json_schema",
-    strict=True,
-)
 
 def search_direct_questions(conversation_id, search_query, allow_external):
     '''
@@ -103,6 +98,6 @@ def determine_search_type(messages):
     
     classifier_messages = messages + [system_instruction]
 
-    response = structured_classifier.invoke(classifier_messages)
+    response = invoke_structured_output(llm, SearchClassification, classifier_messages)
 
     return response.model_dump() if hasattr(response, "model_dump") else response

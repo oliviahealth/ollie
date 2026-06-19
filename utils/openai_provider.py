@@ -33,7 +33,7 @@ def _get_bedrock_runtime_client():
 @lru_cache(maxsize=1)
 def get_chat_model():
     return ChatBedrockConverse(
-        model_id="amazon.nova-lite-v1:0",
+        model_id="openai.gpt-oss-120b-1:0",
         region_name="us-east-1",
         client=_get_bedrock_runtime_client(),
     )
