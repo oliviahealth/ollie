@@ -8,7 +8,7 @@ from chains.conversational_retrieval_chain_with_memory import build_conversation
 
 from socketio_instance import socketio
 import retrievers.retriever_store as retriever_store
-from utils.openai_provider import get_chat_model
+from utils.openai_provider import get_chat_model, get_small_chat_model
 from utils.structured_output import invoke_structured_output
 
 connection_uri = os.getenv("POSTGRES_DSN")
@@ -18,15 +18,13 @@ class SearchClassification(BaseModel):
     function_name: Literal["search_direct_questions", "search_location_questions", "follow_up"] = Field(
         description="The appropriate function strategy to execute based on the user's intent."
     )
-    query: str = Field(
-        description="The summarized search query. MUST be an empty string if function_name is 'follow_up'."
-    )
     response: Optional[str] = Field(
         default="",
         description="The user-facing follow-up response message. Only required if function_name is 'follow_up'."
     )
 
 llm = get_chat_model()
+small_llm = get_small_chat_model()
 
 def search_direct_questions(conversation_id, search_query, allow_external):
     '''
@@ -42,7 +40,7 @@ def search_direct_questions(conversation_id, search_query, allow_external):
     # Build the retrieval QA chain with SQL memory
     # Must pass in the session_id from the message_store table
     retrieval_qa_chain = build_conversational_retrieval_chain_with_memory(
-        llm, retriever_store.pg_vector_retriever, conversation_id, connection_uri, socketio, allow_external)
+        llm, small_llm, retriever_store.pg_vector_retriever, conversation_id, connection_uri, socketio, allow_external)
 
     # Invoke RAG process
     response = retrieval_qa_chain.invoke(search_query)
@@ -68,7 +66,7 @@ def search_location_questions(conversation_id, search_query):
     Examples of location questions: 'Dental Services in Corpus Christi', 'Where can I get mental health support in Bryan'
     '''
     retrieval_qa_chain = build_conversational_retrieval_chain_with_memory(
-        llm, retriever_store.table_column_retriever, conversation_id, connection_uri, socketio)
+        llm, small_llm, retriever_store.table_column_retriever, conversation_id, connection_uri, socketio)
     
     response = retrieval_qa_chain.invoke(search_query)
     answer = response.get('answer')
@@ -83,7 +81,7 @@ def search_location_questions(conversation_id, search_query):
 def determine_search_type(messages):
     '''
     Given a search query, determine whether it's location-based, direct-answer, or needs follow-up.
-    Returns a JSON object with the selected function name, summarized query, and optional follow-up response.
+    Returns a JSON object with the selected function name, and optional follow-up response.
     '''
 
     system_instruction = {
@@ -98,6 +96,6 @@ def determine_search_type(messages):
     
     classifier_messages = messages + [system_instruction]
 
-    response = invoke_structured_output(llm, SearchClassification, classifier_messages)
+    response = invoke_structured_output(small_llm, SearchClassification, classifier_messages)
 
     return response.model_dump() if hasattr(response, "model_dump") else response

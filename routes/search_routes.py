@@ -117,7 +117,7 @@ def formatted_db_search():
     )
 
     messages = [
-        {"role": "system", "content": "You are a helpful assistant. First, summarize the conversation history. Then determine if the user's query is location-based, direct-answer, or requires more information. Provide the summary explicitly."},
+        {"role": "system", "content": "You are a helpful assistant. Analyze the conversation history to understand the full context of the user's latest query. Use prior messages to inform your classification."},
     ]
 
     for history in conversation_history:
@@ -183,9 +183,8 @@ def formatted_db_search():
             'conversationId': conversation_id
         }
 
-    # determine_search_type() will also create a summary of the conversation history
-    # Extract the summarized query and pass it into the search handler
-    summarized_query = determine_search_type_response.get("query", "")
+    # Pass the original user query to the chain - the chain has its own memory
+    # and will handle conversation context via its condense_question_llm
 
     if (function_name == 'search_direct_questions'):
         response_type = 'direct'
@@ -194,10 +193,10 @@ def formatted_db_search():
 
         if (allow_external):
             response = search_direct_questions(
-                conversation_id, summarized_query, True)
+                conversation_id, search_query, True)
         else:
             response = search_direct_questions(
-                conversation_id, summarized_query, False)
+                conversation_id, search_query, False)
 
         answer = response.get('answer')
         documents = response.get('documents')
@@ -215,7 +214,7 @@ def formatted_db_search():
     elif (function_name == 'search_location_questions'):
         response_type = 'location'
 
-        data = search_location_questions(conversation_id, summarized_query)
+        data = search_location_questions(conversation_id, search_query)
 
         response = data.get("response")
         locations = data.get("locations")
