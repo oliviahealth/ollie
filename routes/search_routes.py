@@ -183,6 +183,44 @@ def formatted_db_search():
             'conversationId': conversation_id
         }
 
+    if (function_name == "reject"):
+        response = determine_search_type_response.get("response")
+
+        new_user_message = models.message_store(
+            session_id=conversation_id,
+            message=json.dumps({
+                "type": "human",
+                "data": {
+                    "content": search_query
+                }
+            })
+        )
+
+        new_response_message = models.message_store(
+            session_id=conversation_id,
+            message=json.dumps({
+                "type": "ai",
+                "data": {
+                    "content": response
+                }
+            })
+        )
+
+        db.session.add(new_user_message)
+        db.session.add(new_response_message)
+
+        db.session.commit()
+
+        return {
+            'userQuery': search_query,
+            'response': response,
+            'response_type': 'direct',
+            'locations': [],
+            'documents': [],
+            'dateCreated': date_created,
+            'conversationId': conversation_id
+        }
+
     # Pass the original user query to the chain - the chain has its own memory
     # and will handle conversation context via its condense_question_llm
 

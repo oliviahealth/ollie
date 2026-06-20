@@ -10,17 +10,18 @@ from socketio_instance import socketio
 import retrievers.retriever_store as retriever_store
 from utils.openai_provider import get_chat_model, get_small_chat_model
 from utils.structured_output import invoke_structured_output
+from prompts.index import CLASSIFICATION_SYSTEM_PROMPT
 
 connection_uri = os.getenv("POSTGRES_DSN")
 
 # 1. Define the structural schema using Pydantic
 class SearchClassification(BaseModel):
-    function_name: Literal["search_direct_questions", "search_location_questions", "follow_up"] = Field(
+    function_name: Literal["search_direct_questions", "search_location_questions", "follow_up", "reject"] = Field(
         description="The appropriate function strategy to execute based on the user's intent."
     )
     response: Optional[str] = Field(
         default="",
-        description="The user-facing follow-up response message. Only required if function_name is 'follow_up'."
+        description="The user-facing response message. Required for 'follow_up' and 'reject'."
     )
 
 llm = get_chat_model()
@@ -80,18 +81,13 @@ def search_location_questions(conversation_id, search_query):
 
 def determine_search_type(messages):
     '''
-    Given a search query, determine whether it's location-based, direct-answer, or needs follow-up.
-    Returns a JSON object with the selected function name, and optional follow-up response.
+    Given a search query, determine whether it's location-based, direct-answer, needs follow-up, or should be rejected.
+    Returns a JSON object with the selected function name and optional response.
     '''
 
     system_instruction = {
         "role": "system",
-        "content": (
-            "Analyze the conversation history. Select 'search_direct_questions' for general knowledge, "
-            "'search_location_questions' for local/map queries, or 'follow_up' if you need the user "
-            "to clarify or give more information. If you select 'follow_up', the 'query' property "
-            "must be empty, and you must write a helpful follow-up question in the 'response' property."
-        )
+        "content": CLASSIFICATION_SYSTEM_PROMPT.strip(),
     }
     
     classifier_messages = messages + [system_instruction]
