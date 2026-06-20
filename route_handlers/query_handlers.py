@@ -18,9 +18,6 @@ class SearchClassification(BaseModel):
     function_name: Literal["search_direct_questions", "search_location_questions", "follow_up"] = Field(
         description="The appropriate function strategy to execute based on the user's intent."
     )
-    query: str = Field(
-        description="The summarized search query. MUST be an empty string if function_name is 'follow_up'."
-    )
     response: Optional[str] = Field(
         default="",
         description="The user-facing follow-up response message. Only required if function_name is 'follow_up'."
@@ -83,7 +80,7 @@ def search_location_questions(conversation_id, search_query):
 def determine_search_type(messages):
     '''
     Given a search query, determine whether it's location-based, direct-answer, or needs follow-up.
-    Returns a JSON object with the selected function name, summarized query, and optional follow-up response.
+    Returns a JSON object with the selected function name, and optional follow-up response.
     '''
 
     system_instruction = {
