@@ -7,7 +7,8 @@ from langchain_aws import BedrockEmbeddings, ChatBedrockConverse
 
 load_dotenv()
 
-chat_model = os.getenv("CHAT_MODEL")
+chat_model = os.getenv("CHAT_LARGE_MODEL")
+small_chat_model = os.getenv("CHAT_SMALL_MODEL")
 embedding_model = os.getenv("EMBEDDING_MODEL")
 aws_region = os.getenv("AWS_DEFAULT_REGION")
 
@@ -41,6 +42,13 @@ def get_chat_model():
         client=_get_bedrock_runtime_client(),
     )
 
+@lru_cache(maxsize=1)
+def get_small_chat_model():
+    return ChatBedrockConverse(
+        model_id=small_chat_model,
+        region_name=aws_region,
+        client=_get_bedrock_runtime_client(),
+    )
 
 @lru_cache(maxsize=1)
 def get_embeddings_model():
